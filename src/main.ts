@@ -1,10 +1,13 @@
-import { MarkdownView, Plugin } from 'obsidian';
+import { MarkdownView, Plugin, TFile, normalizePath } from 'obsidian';
 import { EditorView } from '@codemirror/view';
 import { EditorSelection } from '@codemirror/state';
-import { isInsideField, findNextField, findPrevField } from './editor/FieldNavigator';
+import { isInsideField, findNextField, findPrevField, getFieldPositions } from './editor/FieldNavigator';
+import { createCreateNoteExtension } from './editor/CreateNoteWidget';
 import { InlineTemplateNotesSettingTab } from './settings';
 import { FieldInsertSuggestor } from './suggestor/FieldInsertSuggestor';
 import { FieldValueSuggestor } from './suggestor/FieldValueSuggestor';
+import { detectTagsOnLine, getTextBeforeTag } from './parser/TagDetector';
+import { sanitizeFileName, buildFrontmatter, buildNoteContent, stripTemplateFrontmatter } from './services/NoteCreationService';
 import { DEFAULT_SETTINGS, PluginSettings } from './types';
 
 export default class InlineTemplateNotesPlugin extends Plugin {
@@ -18,7 +21,8 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 		this.registerEditorSuggest(new FieldInsertSuggestor(this));
 		this.registerEditorSuggest(new FieldValueSuggestor(this));
 
-		// Use DOM-level capture phase to intercept Tab before Obsidian/CodeMirror
+		this.registerEditorExtension(createCreateNoteExtension(this));
+
 		this.registerDomEvent(document, 'keydown', (evt: KeyboardEvent) => {
 			if (evt.key !== 'Tab') return;
 
@@ -52,29 +56,22 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 					scrollIntoView: true
 				});
 
-				// For empty fields, Obsidian async-shifts cursor +1.
-				// Re-assert position after the shift occurs.
 				if (isEmpty) {
 					const reassert = () => {
 						if (cmView.state.selection.main.head !== newOffset) {
 							cmView.dispatch({ selection: EditorSelection.cursor(newOffset) });
 						}
 					};
-					// Use multiple RAF to catch it as early as possible
 					requestAnimationFrame(() => {
 						reassert();
 						requestAnimationFrame(reassert);
 					});
 				}
 			}
-		}, true); // capture phase
-
-		console.log('Inline Template Notes plugin loaded');
+		}, true);
 	}
 
-	onunload() {
-		console.log('Inline Template Notes plugin unloaded');
-	}
+	onunload() {}
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -82,5 +79,77 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	async createNoteFromLine(lineText: string, tagName: string, view: EditorView, lineIndex: number): Promise<void> {
+		const config = this.settings.tagConfigurations.find(c => c.tag === tagName);
+		if (!config) return;
+
+		const tags = detectTagsOnLine(lineText);
+		const tagMatch = tags.find(t => t.tag === tagName);
+		if (!tagMatch) return;
+
+		const title = getTextBeforeTag(lineText, tagMatch).trim() || 'Untitled';
+
+		const fields = getFieldPositions(lineText);
+		const frontmatter = buildFrontmatter(fields, config);
+		const templateContent = await this.getTemplateContent(config.templatePath);
+
+		const fileName = sanitizeFileName(title);
+		const filePath = config.outputFolder
+			? normalizePath(`${config.outputFolder}/${fileName}.md`)
+			: normalizePath(`${fileName}.md`);
+
+		const content = buildNoteContent(frontmatter, templateContent);
+
+		if (config.outputFolder) {
+			const folderExists = await this.app.vault.adapter.exists(config.outputFolder);
+			if (!folderExists) {
+				await this.app.vault.createFolder(config.outputFolder);
+			}
+		}
+
+		const { finalPath, finalFileName } = await this.getUniqueFilePath(filePath, fileName, config.outputFolder);
+
+		await this.app.vault.create(finalPath, content);
+
+		const line = view.state.doc.line(lineIndex + 1);
+		const linkPath = config.outputFolder ? `${config.outputFolder}/${finalFileName}` : finalFileName;
+		const linkText = `[[${linkPath}|${title}]]`;
+
+		view.dispatch({
+			changes: { from: line.from, to: line.to, insert: linkText },
+		});
+	}
+
+	private async getTemplateContent(templatePath: string): Promise<string> {
+		if (!templatePath) return '';
+
+		const file = this.app.vault.getAbstractFileByPath(templatePath);
+		if (file instanceof TFile) {
+			const content = await this.app.vault.read(file);
+			return stripTemplateFrontmatter(content);
+		}
+		return '';
+	}
+
+	private async getUniqueFilePath(
+		basePath: string,
+		baseFileName: string,
+		outputFolder: string
+	): Promise<{ finalPath: string; finalFileName: string }> {
+		let finalFileName = baseFileName;
+		let finalPath = basePath;
+		let counter = 1;
+
+		while (await this.app.vault.adapter.exists(finalPath)) {
+			finalFileName = `${baseFileName}-${counter}`;
+			finalPath = outputFolder
+				? normalizePath(`${outputFolder}/${finalFileName}.md`)
+				: normalizePath(`${finalFileName}.md`);
+			counter++;
+		}
+
+		return { finalPath, finalFileName };
 	}
 }

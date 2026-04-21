@@ -1,8 +1,48 @@
-/*
+.inline-template-notes-widget {
+	display: inline-flex;
+	margin-left: 4px;
+	vertical-align: baseline;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.inline-template-notes-widget button.create-note-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 15px;
+	height: 15px;
+	padding: 0;
+	background: transparent !important;
+	color: var(--text-muted);
+	border: none !important;
+	box-shadow: none !important;
+	border-radius: 3px;
+	cursor: pointer;
+	opacity: 0.6;
+	transition: all 0.15s ease;
+	outline: none;
+	vertical-align: baseline;
+}
 
-If your plugin does not need CSS, delete this file.
+.inline-template-notes-widget button.create-note-button:hover {
+	background: var(--interactive-accent) !important;
+	color: var(--text-on-accent);
+	opacity: 1;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
 
-*/
+.inline-template-notes-widget button.create-note-button:active {
+	transform: scale(0.95);
+}
+
+.inline-template-notes-widget .create-note-button__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+}
+
+.inline-template-notes-widget .create-note-button__icon svg {
+	width: 12px;
+	height: 12px;
+}

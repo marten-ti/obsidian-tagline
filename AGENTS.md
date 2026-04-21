@@ -86,6 +86,16 @@ npm run build
   ```
 - Reload Obsidian and enable the plugin in **Settings → Community plugins**.
 
+### This Project's Test Workflow
+
+After making changes, build and copy to the test vault:
+
+```bash
+npm run build && cp main.js /Users/I570179/Documents/plugin-testing/.obsidian/plugins/inline-template-notes/
+```
+
+Then reload the plugin in Obsidian (Cmd+R or disable/enable plugin).
+
 ## Commands & settings
 
 - Any user-facing commands should be added via `this.addCommand(...)`.
@@ -249,3 +259,16 @@ this.registerInterval(window.setInterval(() => { /* ... */ }, 1000));
 - Developer policies: https://docs.obsidian.md/Developer+policies
 - Plugin guidelines: https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines
 - Style guide: https://help.obsidian.md/style-guide
+
+## Local Reference Codebases
+
+When implementing editor features, refer to these local codebases for patterns:
+
+- **tasknotes** (`~/SAPDeveloper/tasknotes/`): CodeMirror 6 widgets, StateField decorations, note creation service
+  - `src/editor/InstantConvertButtons.ts` - StateField + WidgetType pattern for inline buttons
+  - `src/services/InstantTaskConvertService.ts` - Note creation orchestration
+- **obsidian-tasks** (`~/SAPDeveloper/obsidian-tasks/`): EditorSuggest patterns, suggestion building
+  - `src/Suggestor/EditorSuggestorPopup.ts` - EditorSuggest implementation
+  - `src/Suggestor/Suggestor.ts` - Pure logic for building suggestions
+
+See `reference-analysis.md` for detailed technical findings.
