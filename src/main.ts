@@ -1,99 +1,86 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import { MarkdownView, Plugin } from 'obsidian';
+import { EditorView } from '@codemirror/view';
+import { EditorSelection } from '@codemirror/state';
+import { isInsideField, findNextField, findPrevField } from './editor/FieldNavigator';
+import { InlineTemplateNotesSettingTab } from './settings';
+import { FieldInsertSuggestor } from './suggestor/FieldInsertSuggestor';
+import { FieldValueSuggestor } from './suggestor/FieldValueSuggestor';
+import { DEFAULT_SETTINGS, PluginSettings } from './types';
 
-// Remember to rename these classes and interfaces!
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class InlineTemplateNotesPlugin extends Plugin {
+	settings: PluginSettings;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+		this.addSettingTab(new InlineTemplateNotesSettingTab(this.app, this));
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
+		this.registerEditorSuggest(new FieldInsertSuggestor(this));
+		this.registerEditorSuggest(new FieldValueSuggestor(this));
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+		// Use DOM-level capture phase to intercept Tab before Obsidian/CodeMirror
+		this.registerDomEvent(document, 'keydown', (evt: KeyboardEvent) => {
+			if (evt.key !== 'Tab') return;
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (!activeView) return;
+
+			const editor = activeView.editor;
+			const cmView = (editor as any).cm as EditorView;
+			if (!cmView) return;
+
+			const pos = cmView.state.selection.main.head;
+			const line = cmView.state.doc.lineAt(pos);
+			const cursorCh = pos - line.from;
+
+			const currentField = isInsideField(line.text, cursorCh);
+			if (!currentField) return;
+
+			evt.preventDefault();
+			evt.stopPropagation();
+
+			const targetField = evt.shiftKey
+				? findPrevField(line.text, cursorCh)
+				: findNextField(line.text, cursorCh);
+
+			if (targetField) {
+				const newOffset = line.from + targetField.valueStartPos;
+				const isEmpty = targetField.valueStartPos === targetField.valueEndPos;
+
+				cmView.dispatch({
+					selection: EditorSelection.cursor(newOffset),
+					scrollIntoView: true
+				});
+
+				// For empty fields, Obsidian async-shifts cursor +1.
+				// Re-assert position after the shift occurs.
+				if (isEmpty) {
+					const reassert = () => {
+						if (cmView.state.selection.main.head !== newOffset) {
+							cmView.dispatch({ selection: EditorSelection.cursor(newOffset) });
+						}
+					};
+					// Use multiple RAF to catch it as early as possible
+					requestAnimationFrame(() => {
+						reassert();
+						requestAnimationFrame(reassert);
+					});
 				}
-				return false;
 			}
-		});
+		}, true); // capture phase
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
+		console.log('Inline Template Notes plugin loaded');
 	}
 
 	onunload() {
+		console.log('Inline Template Notes plugin unloaded');
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
 	}
 }
