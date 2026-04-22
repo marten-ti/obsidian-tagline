@@ -10,20 +10,20 @@ export interface TagConfiguration {
 	fields: FieldDefinition[];
 }
 
-export type FieldType = 'text' | 'number' | 'checkbox' | 'date' | 'datetime' | 'options' | 'suggester';
+export type FieldType = 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'list';
+
+export type SuggesterSourceType = 'folder' | 'tag' | 'field' | 'options';
 
 export interface SuggesterSource {
-	type: 'folder' | 'tag';
+	type: SuggesterSourceType;
 	value: string;
 }
 
 export interface FieldDefinition {
 	key: string;
 	type: FieldType;
-	options?: string[];
 	defaultValue?: string;
-	suggesterSource?: SuggesterSource;
-	multiple?: boolean;
+	source?: SuggesterSource;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {

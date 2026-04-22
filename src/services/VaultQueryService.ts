@@ -42,12 +42,10 @@ export function getFilesByTag(app: App, tag: string): FileMatch[] {
 		const cache = app.metadataCache.getFileCache(file);
 		if (!cache) continue;
 
-		// Check inline tags
 		const hasInlineTag = cache.tags?.some(
 			t => t.tag === tagWithHash || t.tag.startsWith(`${tagWithHash}/`)
 		);
 
-		// Check frontmatter tags
 		let hasFrontmatterTag = false;
 		if (cache.frontmatter?.tags) {
 			const fmTags = Array.isArray(cache.frontmatter.tags)
@@ -68,4 +66,31 @@ export function getFilesByTag(app: App, tag: string): FileMatch[] {
 	}
 
 	return results;
+}
+
+export function getFieldValues(app: App, fieldName: string): string[] {
+	const files = app.vault.getMarkdownFiles();
+	const values = new Set<string>();
+
+	for (const file of files) {
+		const cache = app.metadataCache.getFileCache(file);
+		if (!cache?.frontmatter) continue;
+
+		const value = cache.frontmatter[fieldName];
+		if (value === undefined || value === null) continue;
+
+		if (Array.isArray(value)) {
+			for (const item of value) {
+				if (typeof item === 'string' && item.trim()) {
+					values.add(item.trim());
+				}
+			}
+		} else if (typeof value === 'string' && value.trim()) {
+			values.add(value.trim());
+		} else if (typeof value === 'number' || typeof value === 'boolean') {
+			values.add(String(value));
+		}
+	}
+
+	return Array.from(values).sort();
 }

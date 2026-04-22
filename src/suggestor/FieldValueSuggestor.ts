@@ -11,7 +11,7 @@ import { isInsideField, FieldPosition, findNextEmptyField } from '../editor/Fiel
 import { detectConfiguredTagOnLine } from '../parser/TagDetector';
 import { getEditorView } from '../utils/editorHelpers';
 import { addDays, addHours, formatDate, formatDatetime, roundToNextHour } from '../utils/dateHelpers';
-import { getFilesByFolder, getFilesByTag } from '../services/VaultQueryService';
+import { getFilesByFolder, getFilesByTag, getFieldValues } from '../services/VaultQueryService';
 import type { FieldDefinition } from '../types';
 
 interface ValueSuggestionItem {
@@ -19,7 +19,7 @@ interface ValueSuggestionItem {
 	value: string;
 	fieldKey: string;
 	fieldPosition: FieldPosition;
-	isMultiple?: boolean;
+	isList?: boolean;
 }
 
 export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
@@ -50,7 +50,11 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 		}
 
 		const fieldDef = tagConfig.fields.find(f => f.key === fieldPosition.key);
-		if (!fieldDef || fieldDef.type === 'text') {
+		if (!fieldDef) {
+			return null;
+		}
+
+		if (!this.shouldShowSuggestions(fieldDef)) {
 			return null;
 		}
 
@@ -59,6 +63,14 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 			end: { line: cursor.line, ch: fieldPosition.valueEndPos },
 			query: `${tagMatch.tag}:${fieldPosition.key}:${fieldPosition.value}`
 		};
+	}
+
+	private shouldShowSuggestions(fieldDef: FieldDefinition): boolean {
+		if (fieldDef.source) return true;
+		if (fieldDef.type === 'date' || fieldDef.type === 'datetime' || fieldDef.type === 'boolean') {
+			return true;
+		}
+		return false;
 	}
 
 	getSuggestions(context: EditorSuggestContext): ValueSuggestionItem[] {
@@ -79,9 +91,8 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 			return [];
 		}
 
-		// For multi-select, extract only the text after the last comma for filtering
 		let currentValue = fullValue;
-		if (fieldDef.multiple) {
+		if (fieldDef.type === 'list') {
 			const lastCommaIndex = fullValue.lastIndexOf(',');
 			if (lastCommaIndex !== -1) {
 				currentValue = fullValue.substring(lastCommaIndex + 1).trim();
@@ -94,59 +105,163 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 			return [];
 		}
 
-		return this.buildSuggestions(fieldDef, fieldPosition, currentValue, fieldDef.multiple);
+		return this.buildSuggestions(fieldDef, fieldPosition, currentValue);
 	}
 
 	private buildSuggestions(
 		fieldDef: FieldDefinition,
 		fieldPosition: FieldPosition,
-		currentValue: string,
-		isMultiple?: boolean
+		currentValue: string
 	): ValueSuggestionItem[] {
-		// For multi-select, extract already selected values to exclude them
-		const selectedValues = this.getSelectedValues(fieldPosition.value, isMultiple);
+		const selectedValues = this.getSelectedValues(fieldPosition.value, fieldDef.type === 'list');
 
 		switch (fieldDef.type) {
-			case 'options':
-				return this.buildOptionsSuggestions(fieldDef, fieldPosition, currentValue);
 			case 'date':
 				return this.buildDateSuggestions(fieldDef, fieldPosition, currentValue);
 			case 'datetime':
 				return this.buildDatetimeSuggestions(fieldDef, fieldPosition, currentValue);
-			case 'checkbox':
-				return this.buildCheckboxSuggestions(fieldDef, fieldPosition, currentValue);
-			case 'suggester':
-				return this.buildSuggesterSuggestions(fieldDef, fieldPosition, currentValue, selectedValues, isMultiple);
+			case 'boolean':
+				return this.buildBooleanSuggestions(fieldDef, fieldPosition, currentValue);
+			case 'text':
+			case 'list':
+				return this.buildSourceSuggestions(fieldDef, fieldPosition, currentValue, selectedValues);
 			default:
 				return [];
 		}
 	}
 
-	private getSelectedValues(fieldValue: string, isMultiple?: boolean): Set<string> {
+	private getSelectedValues(fieldValue: string, isList: boolean): Set<string> {
 		const selectedValues = new Set<string>();
-		if (isMultiple && fieldValue) {
+		if (isList && fieldValue) {
 			const linkMatches = fieldValue.matchAll(/\[\[([^\]]+)\]\]/g);
 			for (const match of linkMatches) {
 				if (match[1]) selectedValues.add(match[1].toLowerCase());
+			}
+			const plainValues = fieldValue.split(',').map(v => v.trim().toLowerCase());
+			for (const v of plainValues) {
+				if (v && !v.startsWith('[[')) selectedValues.add(v);
 			}
 		}
 		return selectedValues;
 	}
 
+	private buildSourceSuggestions(
+		fieldDef: FieldDefinition,
+		fieldPosition: FieldPosition,
+		filter: string,
+		selectedValues: Set<string>
+	): ValueSuggestionItem[] {
+		const source = fieldDef.source;
+		if (!source) return [];
+
+		const isList = fieldDef.type === 'list';
+
+		switch (source.type) {
+			case 'options':
+				return this.buildOptionsSuggestions(fieldDef, fieldPosition, filter, selectedValues, isList);
+			case 'tag':
+				return this.buildTagSuggestions(fieldDef, fieldPosition, filter, selectedValues, isList, source.value);
+			case 'folder':
+				return this.buildFolderSuggestions(fieldDef, fieldPosition, filter, selectedValues, isList, source.value);
+			case 'field':
+				return this.buildFieldSuggestions(fieldDef, fieldPosition, filter, selectedValues, isList, source.value);
+			default:
+				return [];
+		}
+	}
+
 	private buildOptionsSuggestions(
 		fieldDef: FieldDefinition,
 		fieldPosition: FieldPosition,
-		currentValue: string
+		filter: string,
+		selectedValues: Set<string>,
+		isList: boolean
 	): ValueSuggestionItem[] {
-		if (!fieldDef.options) return [];
+		const options = fieldDef.source?.value.split(',').map(o => o.trim()).filter(Boolean) ?? [];
 
-		return fieldDef.options
-			.filter(option => currentValue === '' || option.toLowerCase().includes(currentValue.toLowerCase()))
+		return options
+			.filter(option => {
+				if (isList && selectedValues.has(option.toLowerCase())) return false;
+				return filter === '' || option.toLowerCase().includes(filter.toLowerCase());
+			})
 			.map(option => ({
 				displayText: option,
 				value: option,
 				fieldKey: fieldDef.key,
-				fieldPosition
+				fieldPosition,
+				isList
+			}));
+	}
+
+	private buildTagSuggestions(
+		fieldDef: FieldDefinition,
+		fieldPosition: FieldPosition,
+		filter: string,
+		selectedValues: Set<string>,
+		isList: boolean,
+		tagValue: string
+	): ValueSuggestionItem[] {
+		const files = getFilesByTag(this.plugin.app, tagValue);
+
+		return files
+			.filter(file => {
+				if (isList && selectedValues.has(file.name.toLowerCase())) return false;
+				return filter === '' || file.name.toLowerCase().includes(filter.toLowerCase());
+			})
+			.map(file => ({
+				displayText: file.name,
+				value: `[[${file.name}]]`,
+				fieldKey: fieldDef.key,
+				fieldPosition,
+				isList
+			}));
+	}
+
+	private buildFolderSuggestions(
+		fieldDef: FieldDefinition,
+		fieldPosition: FieldPosition,
+		filter: string,
+		selectedValues: Set<string>,
+		isList: boolean,
+		folderValue: string
+	): ValueSuggestionItem[] {
+		const files = getFilesByFolder(this.plugin.app, folderValue);
+
+		return files
+			.filter(file => {
+				if (isList && selectedValues.has(file.name.toLowerCase())) return false;
+				return filter === '' || file.name.toLowerCase().includes(filter.toLowerCase());
+			})
+			.map(file => ({
+				displayText: file.name,
+				value: `[[${file.name}]]`,
+				fieldKey: fieldDef.key,
+				fieldPosition,
+				isList
+			}));
+	}
+
+	private buildFieldSuggestions(
+		fieldDef: FieldDefinition,
+		fieldPosition: FieldPosition,
+		filter: string,
+		selectedValues: Set<string>,
+		isList: boolean,
+		fieldName: string
+	): ValueSuggestionItem[] {
+		const values = getFieldValues(this.plugin.app, fieldName);
+
+		return values
+			.filter(value => {
+				if (isList && selectedValues.has(value.toLowerCase())) return false;
+				return filter === '' || value.toLowerCase().includes(filter.toLowerCase());
+			})
+			.map(value => ({
+				displayText: value,
+				value: value,
+				fieldKey: fieldDef.key,
+				fieldPosition,
+				isList
 			}));
 	}
 
@@ -202,7 +317,7 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 			}));
 	}
 
-	private buildCheckboxSuggestions(
+	private buildBooleanSuggestions(
 		fieldDef: FieldDefinition,
 		fieldPosition: FieldPosition,
 		currentValue: string
@@ -222,34 +337,6 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 			}));
 	}
 
-	private buildSuggesterSuggestions(
-		fieldDef: FieldDefinition,
-		fieldPosition: FieldPosition,
-		filter: string,
-		selectedValues: Set<string>,
-		isMultiple?: boolean
-	): ValueSuggestionItem[] {
-		const source = fieldDef.suggesterSource;
-		if (!source) return [];
-
-		const files = source.type === 'folder'
-			? getFilesByFolder(this.plugin.app, source.value)
-			: getFilesByTag(this.plugin.app, source.value);
-
-		return files
-			.filter(file => {
-				if (isMultiple && selectedValues.has(file.name.toLowerCase())) return false;
-				return filter === '' || file.name.toLowerCase().includes(filter.toLowerCase());
-			})
-			.map(file => ({
-				displayText: file.name,
-				value: `[[${file.name}]]`,
-				fieldKey: fieldDef.key,
-				fieldPosition,
-				isMultiple
-			}));
-	}
-
 	renderSuggestion(suggestion: ValueSuggestionItem, el: HTMLElement): void {
 		el.createEl('span', { text: suggestion.displayText });
 	}
@@ -259,21 +346,21 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 		const context = this.context;
 		if (!editor || !context) return;
 
-		const { value, isMultiple, fieldPosition } = suggestion;
+		const { value, isList, fieldPosition } = suggestion;
 		const view = getEditorView(editor);
 		if (!view) return;
 
 		const from = editor.posToOffset(context.start);
 		const to = editor.posToOffset(context.end);
 
-		if (isMultiple) {
-			this.insertMultiSelectValue(view, from, to, value, fieldPosition);
+		if (isList) {
+			this.insertListValue(view, from, to, value, fieldPosition);
 		} else {
 			this.insertSingleValue(view, editor, context, from, to, value);
 		}
 	}
 
-	private insertMultiSelectValue(
+	private insertListValue(
 		view: ReturnType<typeof getEditorView>,
 		from: number,
 		to: number,

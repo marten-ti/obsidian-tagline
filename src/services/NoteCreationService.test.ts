@@ -132,7 +132,7 @@ describe('buildFrontmatter', () => {
 		outputFolder: '',
 		fieldSource: 'manual',
 		fields: [
-			{ key: 'priority', type: 'options', options: ['high', 'medium', 'low'] },
+			{ key: 'priority', type: 'text', source: { type: 'options', value: 'high,medium,low' } },
 			{ key: 'due', type: 'date' },
 			{ key: 'assignee', type: 'text' }
 		]
@@ -160,7 +160,7 @@ describe('buildFrontmatter', () => {
 		const configWithDefaults: TagConfiguration = {
 			...baseConfig,
 			fields: [
-				{ key: 'priority', type: 'options', defaultValue: 'medium' },
+				{ key: 'priority', type: 'text', source: { type: 'options', value: 'high,medium,low' }, defaultValue: 'medium' },
 				{ key: 'status', type: 'text', defaultValue: 'open' }
 			]
 		};
@@ -219,14 +219,14 @@ describe('buildFrontmatter', () => {
 		expect(result).toBe('---\n---');
 	});
 
-	it('formats multiple values as YAML array', () => {
-		const configWithMultiple: TagConfiguration = {
+	it('formats list values as YAML array', () => {
+		const configWithList: TagConfiguration = {
 			tag: 'meeting',
 			templatePath: '',
 			outputFolder: '',
 			fieldSource: 'manual',
 			fields: [
-				{ key: 'attendees', type: 'suggester', multiple: true }
+				{ key: 'attendees', type: 'list', source: { type: 'tag', value: 'person' } }
 			]
 		};
 
@@ -234,7 +234,7 @@ describe('buildFrontmatter', () => {
 			{ key: 'attendees', value: '[[John]], [[Jane]], [[Bob]]' }
 		];
 
-		const result = buildFrontmatter(fields, configWithMultiple);
+		const result = buildFrontmatter(fields, configWithList);
 
 		expect(result).toBe(
 			'---\n' +
@@ -246,14 +246,14 @@ describe('buildFrontmatter', () => {
 		);
 	});
 
-	it('handles multiple values with trailing comma', () => {
-		const configWithMultiple: TagConfiguration = {
+	it('handles list values with trailing comma', () => {
+		const configWithList: TagConfiguration = {
 			tag: 'meeting',
 			templatePath: '',
 			outputFolder: '',
 			fieldSource: 'manual',
 			fields: [
-				{ key: 'attendees', type: 'suggester', multiple: true }
+				{ key: 'attendees', type: 'list', source: { type: 'tag', value: 'person' } }
 			]
 		};
 
@@ -261,7 +261,7 @@ describe('buildFrontmatter', () => {
 			{ key: 'attendees', value: '[[John]], [[Jane]], ' }
 		];
 
-		const result = buildFrontmatter(fields, configWithMultiple);
+		const result = buildFrontmatter(fields, configWithList);
 
 		expect(result).toBe(
 			'---\n' +

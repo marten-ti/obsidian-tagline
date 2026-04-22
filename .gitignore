@@ -25,3 +25,4 @@ data.json
 _old_implementation/
 *.md
 !README.md
+!docs/*.md

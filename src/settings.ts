@@ -1,6 +1,6 @@
 import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
 import type InlineTemplateNotesPlugin from './main';
-import type { TagConfiguration, FieldDefinition, FieldType } from './types';
+import type { TagConfiguration, FieldDefinition, FieldType, SuggesterSourceType } from './types';
 import { parseTemplateFields } from './parser/TemplateFrontmatterParser';
 
 export class InlineTemplateNotesSettingTab extends PluginSettingTab {
@@ -110,7 +110,7 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 		if (config.fieldSource === 'template') {
 			new Setting(configContainer)
 				.setName('Parse template')
-				.setDesc('Parse fields from template frontmatter. Add @suggest: hints for autocomplete.')
+				.setDesc('Parse fields from template frontmatter. Add @type: hints for autocomplete.')
 				.addButton(button => button
 					.setButtonText('Parse now')
 					.onClick(async () => {
@@ -125,8 +125,8 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 						}
 						config.fields = fields;
 						await this.plugin.saveSettings();
-						const hintsCount = fields.filter(f => f.type !== 'text').length;
-						new Notice(`Parsed ${fields.length} fields (${hintsCount} with autocomplete hints)`);
+						const hintsCount = fields.filter(f => f.source !== undefined).length;
+						new Notice(`Parsed ${fields.length} fields (${hintsCount} with autocomplete sources)`);
 						this.display();
 					}));
 
@@ -146,9 +146,7 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 				for (const field of config.fields) {
 					const li = fieldList.createEl('li');
 					let desc = `${field.key}: ${field.type}`;
-					if (field.options) desc += ` (${field.options.join(', ')})`;
-					if (field.suggesterSource) desc += ` → ${field.suggesterSource.type}:${field.suggesterSource.value}`;
-					if (field.multiple) desc += ' [multiple]';
+					if (field.source) desc += ` → ${field.source.type}:${field.source.value}`;
 					if (field.defaultValue !== undefined) desc += ` = "${field.defaultValue}"`;
 					li.setText(desc);
 				}
@@ -201,11 +199,10 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 			.addDropdown(dropdown => dropdown
 				.addOption('text', 'Text')
 				.addOption('number', 'Number')
-				.addOption('checkbox', 'Checkbox')
+				.addOption('boolean', 'Boolean')
 				.addOption('date', 'Date')
 				.addOption('datetime', 'Date & Time')
-				.addOption('options', 'Options')
-				.addOption('suggester', 'Suggester')
+				.addOption('list', 'List')
 				.setValue(field.type)
 				.onChange(async (value) => {
 					field.type = value as FieldType;
@@ -220,52 +217,47 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 					this.display();
 				}));
 
-		if (field.type === 'options') {
-			new Setting(fieldContainer)
-				.setName('Options')
-				.setDesc('Comma-separated list of options')
-				.addText(text => text
-					.setPlaceholder('high, medium, low')
-					.setValue(field.options?.join(', ') || '')
-					.onChange(async (value) => {
-						field.options = value.split(',').map(s => s.trim()).filter(s => s);
-						await this.plugin.saveSettings();
-					}));
-		}
+		new Setting(fieldContainer)
+			.setName('Suggestion source')
+			.setDesc('Where to get suggestions from (optional)')
+			.addDropdown(dropdown => dropdown
+				.addOption('none', 'None')
+				.addOption('options', 'Fixed options')
+				.addOption('folder', 'Folder')
+				.addOption('tag', 'Tag')
+				.addOption('field', 'Field values')
+				.setValue(field.source?.type || 'none')
+				.onChange(async (value) => {
+					if (value === 'none') {
+						field.source = undefined;
+					} else {
+						field.source = {
+							type: value as SuggesterSourceType,
+							value: field.source?.value || ''
+						};
+					}
+					await this.plugin.saveSettings();
+					this.display();
+				}));
 
-		if (field.type === 'suggester') {
-			new Setting(fieldContainer)
-				.setName('Suggester source')
-				.setDesc('Where to get suggestions from')
-				.addDropdown(dropdown => dropdown
-					.addOption('folder', 'Folder')
-					.addOption('tag', 'Tag')
-					.setValue(field.suggesterSource?.type || 'folder')
-					.onChange(async (value) => {
-						field.suggesterSource = {
-							type: value as 'folder' | 'tag',
-							value: field.suggesterSource?.value || ''
-						};
-						await this.plugin.saveSettings();
-					}))
-				.addText(text => text
-					.setPlaceholder(field.suggesterSource?.type === 'tag' ? 'person' : 'People/')
-					.setValue(field.suggesterSource?.value || '')
-					.onChange(async (value) => {
-						field.suggesterSource = {
-							type: field.suggesterSource?.type || 'folder',
-							value
-						};
-						await this.plugin.saveSettings();
-					}));
+		if (field.source) {
+			const placeholders: Record<SuggesterSourceType, string> = {
+				options: 'high, medium, low',
+				folder: 'People/',
+				tag: 'person',
+				field: 'status'
+			};
 
 			new Setting(fieldContainer)
-				.setName('Allow multiple')
-				.setDesc('Allow selecting multiple values')
-				.addToggle(toggle => toggle
-					.setValue(field.multiple || false)
+				.setName('Source value')
+				.setDesc(this.getSourceDescription(field.source.type))
+				.addText(text => text
+					.setPlaceholder(placeholders[field.source!.type])
+					.setValue(field.source?.value || '')
 					.onChange(async (value) => {
-						field.multiple = value;
+						if (field.source) {
+							field.source.value = value;
+						}
 						await this.plugin.saveSettings();
 					}));
 		}
@@ -279,5 +271,18 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 					field.defaultValue = value || undefined;
 					await this.plugin.saveSettings();
 				}));
+	}
+
+	private getSourceDescription(type: SuggesterSourceType): string {
+		switch (type) {
+			case 'options':
+				return 'Comma-separated list of options';
+			case 'folder':
+				return 'Folder path to get notes from';
+			case 'tag':
+				return 'Tag name to filter notes by';
+			case 'field':
+				return 'Property name to collect values from';
+		}
 	}
 }

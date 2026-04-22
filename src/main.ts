@@ -115,7 +115,8 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 		const createdFile = await this.createFileWithTemplaterSupport(finalPath, content);
 
 		const line = view.state.doc.line(lineIndex + 1);
-		const linkPath = config.outputFolder ? `${config.outputFolder}/${finalFileName}` : finalFileName;
+		const normalizedFolder = config.outputFolder?.replace(/\/+$/, '');
+		const linkPath = normalizedFolder ? `${normalizedFolder}/${finalFileName}` : finalFileName;
 		const linkText = `[[${linkPath}|${title}]]`;
 
 		view.dispatch({

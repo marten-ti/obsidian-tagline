@@ -15,7 +15,6 @@ export function formatFrontmatterValue(value: string): string {
 }
 
 export function formatMultipleValues(value: string): string[] {
-	// Split by comma, handling wikilinks that may contain commas
 	const values: string[] = [];
 	let current = '';
 	let bracketDepth = 0;
@@ -49,7 +48,7 @@ export function buildFrontmatter(
 		const field = fields.find(f => f.key === fieldDef.key);
 		const value = field?.value ?? fieldDef.defaultValue ?? '';
 
-		if (fieldDef.multiple && value) {
+		if (fieldDef.type === 'list' && value) {
 			const multipleValues = formatMultipleValues(value);
 			if (multipleValues.length > 0) {
 				lines.push(`${fieldDef.key}:`);

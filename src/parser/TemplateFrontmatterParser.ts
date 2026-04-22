@@ -1,13 +1,6 @@
 import type { App, TFile } from 'obsidian';
 import type { FieldDefinition, FieldType, SuggesterSource } from '../types';
 
-interface ParsedSuggestHint {
-	type: FieldType;
-	options?: string[];
-	suggesterSource?: SuggesterSource;
-	multiple?: boolean;
-}
-
 export async function parseTemplateFields(app: App, templatePath: string): Promise<FieldDefinition[]> {
 	if (!templatePath) return [];
 
@@ -51,100 +44,128 @@ function parseFrontmatterLine(line: string): FieldDefinition | null {
 	const rest = keyValueMatch[3];
 	if (!key || rest === undefined) return null;
 
-	const commentMatch = rest.match(/^(.*?)\s*#\s*@suggest:\s*(.+)$/);
+	const commentMatch = rest.match(/^(.*?)\s*#\s*@type:\s*(.+)$/);
 
 	let yamlValue: string;
-	let suggestHint: string | null = null;
+	let typeHint: string | null = null;
 
 	if (commentMatch) {
 		yamlValue = (commentMatch[1] ?? '').trim();
-		suggestHint = (commentMatch[2] ?? '').trim();
+		typeHint = (commentMatch[2] ?? '').trim();
 	} else {
 		yamlValue = rest.split('#')[0]?.trim() ?? '';
 	}
 
 	const defaultValue = parseYamlValue(yamlValue);
-	const hint = suggestHint ? parseSuggestHint(suggestHint) : inferTypeFromValue(yamlValue);
 
+	if (typeHint) {
+		const parsed = parseTypeHint(typeHint);
+		return {
+			key,
+			type: parsed.type,
+			...(defaultValue !== undefined && { defaultValue }),
+			...(parsed.source && { source: parsed.source })
+		};
+	}
+
+	const inferredType = inferTypeFromValue(yamlValue);
 	return {
 		key,
-		type: hint.type,
-		...(hint.options && { options: hint.options }),
-		...(defaultValue !== undefined && { defaultValue }),
-		...(hint.suggesterSource && { suggesterSource: hint.suggesterSource }),
-		...(hint.multiple && { multiple: hint.multiple })
+		type: inferredType,
+		...(defaultValue !== undefined && { defaultValue })
 	};
 }
 
-function parseSuggestHint(hint: string): ParsedSuggestHint {
-	const multiple = hint.includes(', multiple');
-	const mainHint = hint.replace(/, multiple$/, '').trim();
-
-	if (mainHint === 'text') {
-		return { type: 'text' };
-	}
-
-	if (mainHint === 'number') {
-		return { type: 'number' };
-	}
-
-	if (mainHint === 'checkbox') {
-		return { type: 'checkbox' };
-	}
-
-	if (mainHint === 'date') {
-		return { type: 'date' };
-	}
-
-	if (mainHint === 'datetime') {
-		return { type: 'datetime' };
-	}
-
-	if (mainHint.startsWith('options:')) {
-		const optionsStr = mainHint.substring('options:'.length);
-		const options = optionsStr.split(',').map(o => o.trim()).filter(Boolean);
-		return { type: 'options', options };
-	}
-
-	if (mainHint.startsWith('tag:')) {
-		const tagValue = mainHint.substring('tag:'.length).trim();
-		return {
-			type: 'suggester',
-			suggesterSource: { type: 'tag', value: tagValue },
-			multiple
-		};
-	}
-
-	if (mainHint.startsWith('folder:')) {
-		const folderValue = mainHint.substring('folder:'.length).trim();
-		return {
-			type: 'suggester',
-			suggesterSource: { type: 'folder', value: folderValue },
-			multiple
-		};
-	}
-
-	return { type: 'text' };
+interface ParsedTypeHint {
+	type: FieldType;
+	source?: SuggesterSource;
 }
 
-function inferTypeFromValue(yamlValue: string): ParsedSuggestHint {
+function parseTypeHint(hint: string): ParsedTypeHint {
+	const parts = hint.split('|').map(p => p.trim());
+	const typePart = parts[0] ?? 'text';
+
+	const type = parseFieldType(typePart);
+	const source = parseSource(parts.slice(1));
+
+	return { type, ...(source && { source }) };
+}
+
+function parseFieldType(typePart: string): FieldType {
+	switch (typePart) {
+		case 'text':
+			return 'text';
+		case 'number':
+			return 'number';
+		case 'boolean':
+			return 'boolean';
+		case 'date':
+			return 'date';
+		case 'datetime':
+			return 'datetime';
+		case 'list':
+			return 'list';
+		default:
+			return 'text';
+	}
+}
+
+function parseSource(filters: string[]): SuggesterSource | undefined {
+	for (const filter of filters) {
+		if (filter.startsWith('options:')) {
+			return {
+				type: 'options',
+				value: filter.substring('options:'.length)
+			};
+		}
+
+		if (filter.startsWith('tag:')) {
+			return {
+				type: 'tag',
+				value: filter.substring('tag:'.length)
+			};
+		}
+
+		if (filter.startsWith('folder:')) {
+			return {
+				type: 'folder',
+				value: filter.substring('folder:'.length)
+			};
+		}
+
+		if (filter.startsWith('field:')) {
+			return {
+				type: 'field',
+				value: filter.substring('field:'.length)
+			};
+		}
+	}
+
+	return undefined;
+}
+
+function inferTypeFromValue(yamlValue: string): FieldType {
 	if (yamlValue === 'true' || yamlValue === 'false') {
-		return { type: 'checkbox' };
+		return 'boolean';
 	}
 
 	if (/^-?\d+(\.\d+)?$/.test(yamlValue)) {
-		return { type: 'number' };
+		return 'number';
 	}
 
 	if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(yamlValue)) {
-		return { type: 'datetime' };
+		return 'datetime';
 	}
 
 	if (/^\d{4}-\d{2}-\d{2}$/.test(yamlValue)) {
-		return { type: 'date' };
+		return 'date';
 	}
 
-	return { type: 'text' };
+	if (yamlValue === '[]') {
+		return 'list';
+	}
+
+	return 'text';
 }
 
 function parseYamlValue(yamlValue: string): string | undefined {
