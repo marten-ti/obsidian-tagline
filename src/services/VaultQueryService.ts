@@ -6,8 +6,16 @@ export interface FileMatch {
 }
 
 export function getFilesByFolder(app: App, folderPath: string): FileMatch[] {
-	const normalizedPath = folderPath.replace(/\/+$/, '');
-	const folder = app.vault.getAbstractFileByPath(normalizedPath);
+	const normalizedPath = folderPath.replace(/\/+$/, '').replace(/^\/+/, '');
+
+	// Try exact match first
+	let folder = app.vault.getAbstractFileByPath(normalizedPath);
+
+	// If not found, try case-insensitive search
+	if (!folder || !('children' in folder)) {
+		const allFolders = app.vault.getAllLoadedFiles().filter(f => 'children' in f);
+		folder = allFolders.find(f => f.path.toLowerCase() === normalizedPath.toLowerCase()) ?? null;
+	}
 
 	if (!folder || !('children' in folder)) {
 		return [];

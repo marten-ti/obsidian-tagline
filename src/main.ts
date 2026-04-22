@@ -117,11 +117,21 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 		const line = view.state.doc.line(lineIndex + 1);
 		const normalizedFolder = config.outputFolder?.replace(/\/+$/, '');
 		const linkPath = normalizedFolder ? `${normalizedFolder}/${finalFileName}` : finalFileName;
-		const linkText = `[[${linkPath}|${title}]]`;
+
+		let linkText: string;
+		if (this.settings.linkFormat === 'markdown') {
+			linkText = `[${title}](${linkPath}.md)`;
+		} else {
+			linkText = `[[${linkPath}|${title}]]`;
+		}
 
 		view.dispatch({
 			changes: { from: line.from, to: line.to, insert: linkText },
 		});
+
+		if (this.settings.openNoteAfterCreation) {
+			await this.app.workspace.openLinkText(createdFile.path, '', false);
+		}
 	}
 
 	private async getTemplateContent(templatePath: string): Promise<string> {

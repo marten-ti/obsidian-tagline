@@ -46,3 +46,301 @@
 	width: 12px;
 	height: 12px;
 }
+
+/* Settings styles */
+.inline-template-notes-settings .settings-group {
+	margin-bottom: 24px;
+}
+
+.inline-template-notes-settings .tag-config-details {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	margin-bottom: 8px;
+	overflow: hidden;
+}
+
+.inline-template-notes-settings .tag-config-summary {
+	padding: 12px 16px;
+	cursor: pointer;
+	background: var(--background-secondary);
+	list-style: none;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.inline-template-notes-settings .tag-config-summary::-webkit-details-marker {
+	display: none;
+}
+
+.inline-template-notes-settings .tag-config-summary::before {
+	content: '▶';
+	font-size: 0.9em;
+	transition: transform 0.15s ease;
+	flex-shrink: 0;
+}
+
+.inline-template-notes-settings details[open] .tag-config-summary::before {
+	transform: rotate(90deg);
+}
+
+.inline-template-notes-settings .tag-config-summary-content {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex: 1;
+	min-width: 0;
+}
+
+.inline-template-notes-settings .tag-config-info {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	flex-wrap: wrap;
+	flex: 1;
+	min-width: 0;
+}
+
+.inline-template-notes-settings .tag-config-tag {
+	font-weight: 600;
+	color: var(--text-accent);
+}
+
+.inline-template-notes-settings .tag-config-field-count {
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+.inline-template-notes-settings .tag-config-template {
+	color: var(--text-faint);
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 250px;
+}
+
+.inline-template-notes-settings .tag-config-delete {
+	flex-shrink: 0;
+}
+
+.inline-template-notes-settings .tag-config-content {
+	padding: 16px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.inline-template-notes-settings .fields-container {
+	margin-top: 12px;
+	padding-left: 12px;
+}
+
+.inline-template-notes-settings .field-config {
+	margin-left: 12px;
+	margin-bottom: 8px;
+	padding: 12px;
+	background: var(--background-secondary);
+	border-radius: 6px;
+}
+
+.inline-template-notes-settings .fields-preview {
+	margin-top: 12px;
+	padding: 12px;
+	background: var(--background-secondary);
+	border-radius: 6px;
+}
+
+.inline-template-notes-settings .fields-preview-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 8px;
+}
+
+.inline-template-notes-settings .fields-refresh-btn {
+	font-size: 0.85em;
+	padding: 4px 8px;
+}
+
+.inline-template-notes-settings .fields-preview-empty {
+	color: var(--text-muted);
+	font-style: italic;
+	padding: 8px 0;
+}
+
+/* Readonly field rows (for detected fields) */
+.inline-template-notes-settings .field-row-readonly {
+	background: var(--background-secondary);
+}
+
+.inline-template-notes-settings .field-value {
+	font-family: var(--font-monospace);
+	font-size: 0.85em;
+	padding: 4px 8px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+}
+
+.inline-template-notes-settings .field-value-key {
+	font-weight: 600;
+}
+
+.inline-template-notes-settings .field-value-source {
+	color: var(--text-accent);
+}
+
+/* Manual fields container */
+.inline-template-notes-settings .fields-manual-container {
+	margin-top: 12px;
+	padding: 12px;
+	background: var(--background-secondary);
+	border-radius: 6px;
+}
+
+.inline-template-notes-settings .fields-manual-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
+}
+
+.inline-template-notes-settings .fields-add-btn {
+	font-size: 0.85em;
+	padding: 4px 10px;
+}
+
+.inline-template-notes-settings .fields-list-editable {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+/* Compact editable field row */
+.inline-template-notes-settings .field-row-editable {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	background: var(--background-primary);
+	border-radius: 4px;
+	min-width: max-content;
+}
+
+.inline-template-notes-settings .field-group {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
+.inline-template-notes-settings .field-group-source {
+	flex-shrink: 0;
+}
+
+.inline-template-notes-settings .field-label {
+	font-size: 0.8em;
+	color: var(--text-muted);
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.inline-template-notes-settings .field-input {
+	font-family: var(--font-monospace);
+	font-size: 0.85em;
+	padding: 4px 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+	min-width: 0;
+}
+
+.inline-template-notes-settings .field-key-input {
+	width: 90px;
+	font-weight: 600;
+}
+
+.inline-template-notes-settings .field-select {
+	font-family: var(--font-monospace);
+	font-size: 0.85em;
+	padding: 4px 6px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+	flex-shrink: 0;
+}
+
+.inline-template-notes-settings .field-type-select {
+	width: 85px;
+}
+
+.inline-template-notes-settings .field-source-select {
+	width: 75px;
+}
+
+.inline-template-notes-settings .field-source-input {
+	width: 100px;
+}
+
+.inline-template-notes-settings .field-default-input {
+	width: 80px;
+}
+
+.inline-template-notes-settings .field-remove-btn {
+	padding: 4px 8px;
+	font-size: 1.1em;
+	line-height: 1;
+	background: transparent;
+	border: none;
+	color: var(--text-muted);
+	cursor: pointer;
+	border-radius: 4px;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.inline-template-notes-settings .field-remove-btn:hover {
+	background: var(--background-modifier-error);
+	color: var(--text-on-accent);
+}
+
+/* Horizontal scroll for fields list on narrow screens */
+.inline-template-notes-settings .fields-list-editable {
+	overflow-x: auto;
+	padding-bottom: 4px;
+}
+
+.inline-template-notes-settings .fields-manual-container {
+	overflow-x: auto;
+}
+
+/* Suggestion container styles for settings */
+.suggestion-container {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	max-height: 300px;
+	overflow-y: auto;
+	min-width: 250px;
+	width: max-content;
+	max-width: 400px;
+}
+
+.suggestion-item {
+	padding: 8px 12px;
+	cursor: pointer;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.suggestion-item:hover,
+.suggestion-item.is-selected {
+	background: var(--background-modifier-hover);
+}
+
+.suggestion-item.is-selected {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
