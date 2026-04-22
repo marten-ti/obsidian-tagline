@@ -4,6 +4,8 @@ import {
 	detectConfiguredTagOnLine,
 	getTextBeforeTag,
 	getTextAfterTag,
+	extractLinePrefix,
+	extractCleanTitle,
 	TagMatch,
 } from './TagDetector';
 
@@ -212,5 +214,159 @@ describe('real-world scenarios', () => {
 		const line = '#project/backend/api Important task';
 		const tags = detectTagsOnLine(line);
 		expect(tags[0]?.tag).toBe('project/backend/api');
+	});
+});
+
+describe('extractLinePrefix', () => {
+	describe('checkbox tasks', () => {
+		it('extracts unchecked checkbox prefix', () => {
+			const result = extractLinePrefix('- [ ] todo');
+			expect(result.prefix).toBe('- [ ] ');
+			expect(result.contentStart).toBe(6);
+		});
+
+		it('extracts checked checkbox prefix', () => {
+			const result = extractLinePrefix('- [x] completed');
+			expect(result.prefix).toBe('- [x] ');
+			expect(result.contentStart).toBe(6);
+		});
+
+		it('extracts uppercase checked checkbox prefix', () => {
+			const result = extractLinePrefix('- [X] completed');
+			expect(result.prefix).toBe('- [X] ');
+			expect(result.contentStart).toBe(6);
+		});
+
+		it('extracts asterisk checkbox prefix', () => {
+			const result = extractLinePrefix('* [ ] task');
+			expect(result.prefix).toBe('* [ ] ');
+			expect(result.contentStart).toBe(6);
+		});
+
+		it('extracts numbered checkbox prefix', () => {
+			const result = extractLinePrefix('1. [ ] first task');
+			expect(result.prefix).toBe('1. [ ] ');
+			expect(result.contentStart).toBe(7);
+		});
+	});
+
+	describe('bullet points', () => {
+		it('extracts dash bullet prefix', () => {
+			const result = extractLinePrefix('- bullet item');
+			expect(result.prefix).toBe('- ');
+			expect(result.contentStart).toBe(2);
+		});
+
+		it('extracts asterisk bullet prefix', () => {
+			const result = extractLinePrefix('* bullet item');
+			expect(result.prefix).toBe('* ');
+			expect(result.contentStart).toBe(2);
+		});
+
+		it('extracts plus bullet prefix', () => {
+			const result = extractLinePrefix('+ bullet item');
+			expect(result.prefix).toBe('+ ');
+			expect(result.contentStart).toBe(2);
+		});
+	});
+
+	describe('numbered lists', () => {
+		it('extracts single digit numbered prefix', () => {
+			const result = extractLinePrefix('1. numbered item');
+			expect(result.prefix).toBe('1. ');
+			expect(result.contentStart).toBe(3);
+		});
+
+		it('extracts multi-digit numbered prefix', () => {
+			const result = extractLinePrefix('12. numbered item');
+			expect(result.prefix).toBe('12. ');
+			expect(result.contentStart).toBe(4);
+		});
+	});
+
+	describe('blockquotes', () => {
+		it('extracts single blockquote prefix', () => {
+			const result = extractLinePrefix('> quoted text');
+			expect(result.prefix).toBe('> ');
+			expect(result.contentStart).toBe(2);
+		});
+
+		it('extracts nested blockquote prefix', () => {
+			const result = extractLinePrefix('> > nested quote');
+			expect(result.prefix).toBe('> > ');
+			expect(result.contentStart).toBe(4);
+		});
+
+		it('extracts deeply nested blockquote prefix', () => {
+			const result = extractLinePrefix('> > > deep quote');
+			expect(result.prefix).toBe('> > > ');
+			expect(result.contentStart).toBe(6);
+		});
+	});
+
+	describe('indentation', () => {
+		it('preserves leading whitespace with checkbox', () => {
+			const result = extractLinePrefix('  - [ ] indented task');
+			expect(result.prefix).toBe('  - [ ] ');
+			expect(result.contentStart).toBe(8);
+		});
+
+		it('preserves leading whitespace with bullet', () => {
+			const result = extractLinePrefix('    - bullet');
+			expect(result.prefix).toBe('    - ');
+			expect(result.contentStart).toBe(6);
+		});
+	});
+
+	describe('no prefix', () => {
+		it('returns empty prefix for plain text', () => {
+			const result = extractLinePrefix('plain text');
+			expect(result.prefix).toBe('');
+			expect(result.contentStart).toBe(0);
+		});
+
+		it('returns empty prefix for text starting with hash', () => {
+			const result = extractLinePrefix('#tag some text');
+			expect(result.prefix).toBe('');
+			expect(result.contentStart).toBe(0);
+		});
+	});
+});
+
+describe('extractCleanTitle', () => {
+	it('extracts title from checkbox line', () => {
+		expect(extractCleanTitle('- [ ] todo')).toBe('todo');
+	});
+
+	it('extracts title from checked checkbox line', () => {
+		expect(extractCleanTitle('- [x] completed task')).toBe('completed task');
+	});
+
+	it('extracts title from bullet point', () => {
+		expect(extractCleanTitle('- bullet item')).toBe('bullet item');
+	});
+
+	it('extracts title from numbered list', () => {
+		expect(extractCleanTitle('1. numbered item')).toBe('numbered item');
+	});
+
+	it('extracts title from blockquote', () => {
+		expect(extractCleanTitle('> quoted text')).toBe('quoted text');
+	});
+
+	it('extracts title from nested blockquote', () => {
+		expect(extractCleanTitle('> > nested quote')).toBe('nested quote');
+	});
+
+	it('extracts title from indented checkbox', () => {
+		expect(extractCleanTitle('  - [ ] indented task')).toBe('indented task');
+	});
+
+	it('returns plain text unchanged', () => {
+		expect(extractCleanTitle('My note title')).toBe('My note title');
+	});
+
+	it('trims whitespace from result', () => {
+		expect(extractCleanTitle('- [ ]   spaced title  ')).toBe('spaced title');
 	});
 });

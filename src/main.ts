@@ -7,7 +7,7 @@ import { createCreateNoteExtension } from './editor/CreateNoteWidget';
 import { InlineTemplateNotesSettingTab } from './settings';
 import { FieldInsertSuggestor } from './suggestor/FieldInsertSuggestor';
 import { FieldValueSuggestor } from './suggestor/FieldValueSuggestor';
-import { detectTagsOnLine, getTextBeforeTag } from './parser/TagDetector';
+import { detectTagsOnLine, getTextBeforeTag, extractLinePrefix, extractCleanTitle } from './parser/TagDetector';
 import { sanitizeFileName, buildFrontmatter, buildNoteContent, stripTemplateFrontmatter } from './services/NoteCreationService';
 import { DEFAULT_SETTINGS, PluginSettings } from './types';
 
@@ -90,7 +90,9 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 		const tagMatch = tags.find(t => t.tag === tagName);
 		if (!tagMatch) return;
 
-		const title = getTextBeforeTag(lineText, tagMatch).trim() || 'Untitled';
+		const textBeforeTag = getTextBeforeTag(lineText, tagMatch);
+		const { prefix } = extractLinePrefix(lineText);
+		const title = extractCleanTitle(textBeforeTag) || 'Untitled';
 
 		const fields = getFieldPositions(lineText);
 		const frontmatter = buildFrontmatter(fields, config);
@@ -120,9 +122,9 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 
 		let linkText: string;
 		if (this.settings.linkFormat === 'markdown') {
-			linkText = `[${title}](${linkPath}.md)`;
+			linkText = `${prefix}[${title}](${linkPath}.md)`;
 		} else {
-			linkText = `[[${linkPath}|${title}]]`;
+			linkText = `${prefix}[[${linkPath}|${title}]]`;
 		}
 
 		view.dispatch({
