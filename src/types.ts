@@ -3,6 +3,7 @@ export interface PluginSettings {
 	openNoteAfterCreation: boolean;
 	defaultTemplateFolder: string;
 	linkFormat: 'wiki' | 'markdown';
+	enableFieldStyling: boolean;
 }
 
 export interface TagConfiguration {
@@ -37,5 +38,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	tagConfigurations: [],
 	openNoteAfterCreation: false,
 	defaultTemplateFolder: '',
-	linkFormat: 'wiki'
+	linkFormat: 'wiki',
+	enableFieldStyling: true
 };

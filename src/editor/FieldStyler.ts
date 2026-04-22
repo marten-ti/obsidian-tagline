@@ -165,6 +165,10 @@ function buildFieldDecorations(view: EditorView, plugin: InlineTemplateNotesPlug
 		return builder.finish();
 	}
 
+	if (!plugin.settings.enableFieldStyling) {
+		return builder.finish();
+	}
+
 	const configuredTags = plugin.settings.tagConfigurations.map(c => c.tag);
 	if (configuredTags.length === 0) {
 		return builder.finish();

@@ -66,6 +66,16 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 					this.plugin.settings.linkFormat = value as 'wiki' | 'markdown';
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(generalGroup)
+			.setName('Style inline fields')
+			.setDesc('Display fields with visual styling (requires reload to take effect)')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.enableFieldStyling)
+				.onChange(async (value) => {
+					this.plugin.settings.enableFieldStyling = value;
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	private renderTagConfigurations(containerEl: HTMLElement): void {
