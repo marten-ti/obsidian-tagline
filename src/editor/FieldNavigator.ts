@@ -7,22 +7,21 @@ export interface FieldPosition {
 	value: string;
 }
 
-// Matches [key:: value] - key can contain spaces, value can be empty or have content
-const FIELD_REGEX = /\[([a-zA-Z_][a-zA-Z0-9_ ]*):: ([^\]]*)\]/g;
+// Matches [key:: value] - key can contain letters, numbers, spaces, and common punctuation
+// Value can contain wikilinks like [[Note]] - we match greedily but stop at ] not followed by ]
+const FIELD_PATTERN = /\[([a-zA-Z_][a-zA-Z0-9_ &\-]*):: ((?:[^\[\]]|\[\[[^\]]*\]\])*)\]/g;
 
 export function getFieldPositions(line: string): FieldPosition[] {
 	const fields: FieldPosition[] = [];
-	let match;
 
-	while ((match = FIELD_REGEX.exec(line)) !== null) {
+	for (const match of line.matchAll(FIELD_PATTERN)) {
 		const key = match[1];
 		const value = match[2];
 		if (key !== undefined && value !== undefined) {
-			const startPos = match.index;
-			const endPos = match.index + match[0].length;
+			const startPos = match.index!;
+			const endPos = startPos + match[0].length;
 			// valueStartPos: position right after ":: "
-			// For [prio:: value], that's: [ + key + :: + space = 1 + keyLen + 2 + 1 = keyLen + 4
-			const valueStartPos = match.index + 1 + key.length + 3; // after "[key:: "
+			const valueStartPos = startPos + 1 + key.length + 3; // after "[key:: "
 			// valueEndPos: position of the "]" (exclusive end for cursor range)
 			const valueEndPos = endPos - 1;
 
@@ -32,12 +31,11 @@ export function getFieldPositions(line: string): FieldPosition[] {
 				endPos,
 				valueStartPos,
 				valueEndPos,
-				value: value.trim() // trim the captured value
+				value: value.trim()
 			});
 		}
 	}
 
-	FIELD_REGEX.lastIndex = 0;
 	return fields;
 }
 

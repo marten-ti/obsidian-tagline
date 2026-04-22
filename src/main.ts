@@ -2,6 +2,7 @@ import { MarkdownView, Plugin, TFile, normalizePath } from 'obsidian';
 import { EditorView } from '@codemirror/view';
 import { EditorSelection } from '@codemirror/state';
 import { isInsideField, findNextField, findPrevField, getFieldPositions } from './editor/FieldNavigator';
+import { getEditorView } from './utils/editorHelpers';
 import { createCreateNoteExtension } from './editor/CreateNoteWidget';
 import { InlineTemplateNotesSettingTab } from './settings';
 import { FieldInsertSuggestor } from './suggestor/FieldInsertSuggestor';
@@ -30,7 +31,7 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 			if (!activeView) return;
 
 			const editor = activeView.editor;
-			const cmView = (editor as any).cm as EditorView;
+			const cmView = getEditorView(editor);
 			if (!cmView) return;
 
 			const pos = cmView.state.selection.main.head;

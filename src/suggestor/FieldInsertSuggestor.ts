@@ -6,9 +6,9 @@ import {
 	EditorSuggestTriggerInfo,
 	TFile
 } from 'obsidian';
-import { EditorView } from '@codemirror/view';
 import type InlineTemplateNotesPlugin from '../main';
 import { detectConfiguredTagOnLine, TagMatch } from '../parser/TagDetector';
+import { getEditorView } from '../utils/editorHelpers';
 import type { TagConfiguration } from '../types';
 
 interface SuggestionItem {
@@ -92,9 +92,9 @@ export class FieldInsertSuggestor extends EditorSuggest<SuggestionItem> {
 		});
 		const fieldsText = ' ' + fieldStrings.join(' ');
 
-		// Use CodeMirror 6 transaction API for atomic text insertion + cursor positioning
-		// This bypasses Obsidian's EditorSuggest cursor override behavior
-		const view = (editor as any).cm as EditorView;
+		const view = getEditorView(editor);
+		if (!view) return;
+
 		const from = editor.posToOffset(context.start);
 		const to = editor.posToOffset(context.end);
 

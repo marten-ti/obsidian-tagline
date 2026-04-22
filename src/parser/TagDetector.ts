@@ -4,24 +4,22 @@ export interface TagMatch {
 	endPos: number;
 }
 
-const TAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_/-]*)/g;
+const TAG_PATTERN = /#([a-zA-Z][a-zA-Z0-9_/-]*)/g;
 
 export function detectTagsOnLine(line: string): TagMatch[] {
 	const matches: TagMatch[] = [];
-	let match;
 
-	while ((match = TAG_REGEX.exec(line)) !== null) {
+	for (const match of line.matchAll(TAG_PATTERN)) {
 		const tagName = match[1];
 		if (tagName) {
 			matches.push({
 				tag: tagName,
-				startPos: match.index,
-				endPos: match.index + match[0].length
+				startPos: match.index!,
+				endPos: match.index! + match[0].length
 			});
 		}
 	}
 
-	TAG_REGEX.lastIndex = 0;
 	return matches;
 }
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	sanitizeFileName,
 	formatFrontmatterValue,
+	formatMultipleValues,
 	buildFrontmatter,
 	buildNoteContent,
 	stripTemplateFrontmatter
@@ -80,11 +81,56 @@ describe('formatFrontmatterValue', () => {
 	});
 });
 
+describe('formatMultipleValues', () => {
+	it('splits simple comma-separated values', () => {
+		expect(formatMultipleValues('a, b, c')).toEqual(['a', 'b', 'c']);
+	});
+
+	it('handles wikilinks with commas inside', () => {
+		expect(formatMultipleValues('[[Note, Part 1]], [[Note 2]]')).toEqual([
+			'[[Note, Part 1]]',
+			'[[Note 2]]'
+		]);
+	});
+
+	it('trims whitespace from values', () => {
+		expect(formatMultipleValues('  a  ,  b  ')).toEqual(['a', 'b']);
+	});
+
+	it('handles trailing commas', () => {
+		expect(formatMultipleValues('a, b, ')).toEqual(['a', 'b']);
+	});
+
+	it('handles empty string', () => {
+		expect(formatMultipleValues('')).toEqual([]);
+	});
+
+	it('handles single value', () => {
+		expect(formatMultipleValues('single')).toEqual(['single']);
+	});
+
+	it('handles nested wikilinks', () => {
+		expect(formatMultipleValues('[[A]], [[B]], [[C]]')).toEqual([
+			'[[A]]',
+			'[[B]]',
+			'[[C]]'
+		]);
+	});
+
+	it('handles wikilinks with display text', () => {
+		expect(formatMultipleValues('[[Note|Display]], [[Other]]')).toEqual([
+			'[[Note|Display]]',
+			'[[Other]]'
+		]);
+	});
+});
+
 describe('buildFrontmatter', () => {
 	const baseConfig: TagConfiguration = {
 		tag: 'todo',
 		templatePath: '',
 		outputFolder: '',
+		fieldSource: 'manual',
 		fields: [
 			{ key: 'priority', type: 'options', options: ['high', 'medium', 'low'] },
 			{ key: 'due', type: 'date' },
@@ -164,12 +210,66 @@ describe('buildFrontmatter', () => {
 			tag: 'note',
 			templatePath: '',
 			outputFolder: '',
+			fieldSource: 'manual',
 			fields: []
 		};
 
 		const result = buildFrontmatter([], emptyConfig);
 
 		expect(result).toBe('---\n---');
+	});
+
+	it('formats multiple values as YAML array', () => {
+		const configWithMultiple: TagConfiguration = {
+			tag: 'meeting',
+			templatePath: '',
+			outputFolder: '',
+			fieldSource: 'manual',
+			fields: [
+				{ key: 'attendees', type: 'suggester', multiple: true }
+			]
+		};
+
+		const fields = [
+			{ key: 'attendees', value: '[[John]], [[Jane]], [[Bob]]' }
+		];
+
+		const result = buildFrontmatter(fields, configWithMultiple);
+
+		expect(result).toBe(
+			'---\n' +
+			'attendees:\n' +
+			'  - "[[John]]"\n' +
+			'  - "[[Jane]]"\n' +
+			'  - "[[Bob]]"\n' +
+			'---'
+		);
+	});
+
+	it('handles multiple values with trailing comma', () => {
+		const configWithMultiple: TagConfiguration = {
+			tag: 'meeting',
+			templatePath: '',
+			outputFolder: '',
+			fieldSource: 'manual',
+			fields: [
+				{ key: 'attendees', type: 'suggester', multiple: true }
+			]
+		};
+
+		const fields = [
+			{ key: 'attendees', value: '[[John]], [[Jane]], ' }
+		];
+
+		const result = buildFrontmatter(fields, configWithMultiple);
+
+		expect(result).toBe(
+			'---\n' +
+			'attendees:\n' +
+			'  - "[[John]]"\n' +
+			'  - "[[Jane]]"\n' +
+			'---'
+		);
 	});
 });
 

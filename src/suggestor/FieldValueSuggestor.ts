@@ -6,10 +6,12 @@ import {
 	EditorSuggestTriggerInfo,
 	TFile
 } from 'obsidian';
-import { EditorView } from '@codemirror/view';
 import type InlineTemplateNotesPlugin from '../main';
 import { isInsideField, FieldPosition, findNextEmptyField } from '../editor/FieldNavigator';
 import { detectConfiguredTagOnLine } from '../parser/TagDetector';
+import { getEditorView } from '../utils/editorHelpers';
+import { addDays, addHours, formatDate, formatDatetime, roundToNextHour } from '../utils/dateHelpers';
+import { getFilesByFolder, getFilesByTag } from '../services/VaultQueryService';
 import type { FieldDefinition } from '../types';
 
 interface ValueSuggestionItem {
@@ -17,6 +19,7 @@ interface ValueSuggestionItem {
 	value: string;
 	fieldKey: string;
 	fieldPosition: FieldPosition;
+	isMultiple?: boolean;
 }
 
 export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
@@ -60,7 +63,7 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 
 	getSuggestions(context: EditorSuggestContext): ValueSuggestionItem[] {
 		const [tagName, fieldKey, ...valueParts] = context.query.split(':');
-		const currentValue = valueParts.join(':');
+		const fullValue = valueParts.join(':');
 
 		if (!tagName || !fieldKey) {
 			return [];
@@ -76,62 +79,83 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 			return [];
 		}
 
+		// For multi-select, extract only the text after the last comma for filtering
+		let currentValue = fullValue;
+		if (fieldDef.multiple) {
+			const lastCommaIndex = fullValue.lastIndexOf(',');
+			if (lastCommaIndex !== -1) {
+				currentValue = fullValue.substring(lastCommaIndex + 1).trim();
+			}
+		}
+
 		const line = context.editor.getLine(context.start.line);
 		const fieldPosition = isInsideField(line, context.start.ch);
 		if (!fieldPosition) {
 			return [];
 		}
 
-		return this.buildSuggestions(fieldDef, fieldPosition, currentValue);
+		return this.buildSuggestions(fieldDef, fieldPosition, currentValue, fieldDef.multiple);
 	}
 
 	private buildSuggestions(
 		fieldDef: FieldDefinition,
 		fieldPosition: FieldPosition,
-		currentValue: string
+		currentValue: string,
+		isMultiple?: boolean
 	): ValueSuggestionItem[] {
-		const suggestions: ValueSuggestionItem[] = [];
+		// For multi-select, extract already selected values to exclude them
+		const selectedValues = this.getSelectedValues(fieldPosition.value, isMultiple);
 
-		if (fieldDef.type === 'options' && fieldDef.options) {
-			for (const option of fieldDef.options) {
-				if (currentValue === '' || option.toLowerCase().includes(currentValue.toLowerCase())) {
-					suggestions.push({
-						displayText: option,
-						value: option,
-						fieldKey: fieldDef.key,
-						fieldPosition
-					});
-				}
-			}
-		} else if (fieldDef.type === 'date') {
-			const dateSuggestions = this.getDateSuggestions(currentValue);
-			for (const ds of dateSuggestions) {
-				suggestions.push({
-					displayText: ds.display,
-					value: ds.value,
-					fieldKey: fieldDef.key,
-					fieldPosition
-				});
-			}
+		switch (fieldDef.type) {
+			case 'options':
+				return this.buildOptionsSuggestions(fieldDef, fieldPosition, currentValue);
+			case 'date':
+				return this.buildDateSuggestions(fieldDef, fieldPosition, currentValue);
+			case 'datetime':
+				return this.buildDatetimeSuggestions(fieldDef, fieldPosition, currentValue);
+			case 'checkbox':
+				return this.buildCheckboxSuggestions(fieldDef, fieldPosition, currentValue);
+			case 'suggester':
+				return this.buildSuggesterSuggestions(fieldDef, fieldPosition, currentValue, selectedValues, isMultiple);
+			default:
+				return [];
 		}
-
-		return suggestions;
 	}
 
-	private getDateSuggestions(filter: string): { display: string; value: string }[] {
+	private getSelectedValues(fieldValue: string, isMultiple?: boolean): Set<string> {
+		const selectedValues = new Set<string>();
+		if (isMultiple && fieldValue) {
+			const linkMatches = fieldValue.matchAll(/\[\[([^\]]+)\]\]/g);
+			for (const match of linkMatches) {
+				if (match[1]) selectedValues.add(match[1].toLowerCase());
+			}
+		}
+		return selectedValues;
+	}
+
+	private buildOptionsSuggestions(
+		fieldDef: FieldDefinition,
+		fieldPosition: FieldPosition,
+		currentValue: string
+	): ValueSuggestionItem[] {
+		if (!fieldDef.options) return [];
+
+		return fieldDef.options
+			.filter(option => currentValue === '' || option.toLowerCase().includes(currentValue.toLowerCase()))
+			.map(option => ({
+				displayText: option,
+				value: option,
+				fieldKey: fieldDef.key,
+				fieldPosition
+			}));
+	}
+
+	private buildDateSuggestions(
+		fieldDef: FieldDefinition,
+		fieldPosition: FieldPosition,
+		filter: string
+	): ValueSuggestionItem[] {
 		const today = new Date();
-		const suggestions: { display: string; value: string }[] = [];
-
-		const addDays = (date: Date, days: number): Date => {
-			const result = new Date(date);
-			result.setDate(result.getDate() + days);
-			return result;
-		};
-
-		const formatDate = (date: Date): string => {
-			return date.toISOString().split('T')[0] ?? '';
-		};
-
 		const candidates = [
 			{ display: `today (${formatDate(today)})`, value: formatDate(today) },
 			{ display: `tomorrow (${formatDate(addDays(today, 1))})`, value: formatDate(addDays(today, 1)) },
@@ -141,13 +165,89 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 			{ display: `in 2 weeks (${formatDate(addDays(today, 14))})`, value: formatDate(addDays(today, 14)) }
 		];
 
-		for (const c of candidates) {
-			if (filter === '' || c.display.toLowerCase().includes(filter.toLowerCase()) || c.value.includes(filter)) {
-				suggestions.push(c);
-			}
-		}
+		return candidates
+			.filter(c => filter === '' || c.display.toLowerCase().includes(filter.toLowerCase()) || c.value.includes(filter))
+			.map(c => ({
+				displayText: c.display,
+				value: c.value,
+				fieldKey: fieldDef.key,
+				fieldPosition
+			}));
+	}
 
-		return suggestions;
+	private buildDatetimeSuggestions(
+		fieldDef: FieldDefinition,
+		fieldPosition: FieldPosition,
+		filter: string
+	): ValueSuggestionItem[] {
+		const now = new Date();
+		const nextHour = roundToNextHour(now);
+		const tomorrow9am = addDays(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0), 1);
+
+		const candidates = [
+			{ display: `now (${formatDatetime(now)})`, value: formatDatetime(now) },
+			{ display: `in 1 hour (${formatDatetime(nextHour)})`, value: formatDatetime(nextHour) },
+			{ display: `in 2 hours (${formatDatetime(addHours(nextHour, 1))})`, value: formatDatetime(addHours(nextHour, 1)) },
+			{ display: `tomorrow 9am (${formatDatetime(tomorrow9am)})`, value: formatDatetime(tomorrow9am) },
+			{ display: `tomorrow 2pm (${formatDatetime(addHours(tomorrow9am, 5))})`, value: formatDatetime(addHours(tomorrow9am, 5)) }
+		];
+
+		return candidates
+			.filter(c => filter === '' || c.display.toLowerCase().includes(filter.toLowerCase()) || c.value.includes(filter))
+			.map(c => ({
+				displayText: c.display,
+				value: c.value,
+				fieldKey: fieldDef.key,
+				fieldPosition
+			}));
+	}
+
+	private buildCheckboxSuggestions(
+		fieldDef: FieldDefinition,
+		fieldPosition: FieldPosition,
+		currentValue: string
+	): ValueSuggestionItem[] {
+		const options = [
+			{ display: 'true', value: 'true' },
+			{ display: 'false', value: 'false' }
+		];
+
+		return options
+			.filter(opt => currentValue === '' || opt.display.includes(currentValue.toLowerCase()))
+			.map(opt => ({
+				displayText: opt.display,
+				value: opt.value,
+				fieldKey: fieldDef.key,
+				fieldPosition
+			}));
+	}
+
+	private buildSuggesterSuggestions(
+		fieldDef: FieldDefinition,
+		fieldPosition: FieldPosition,
+		filter: string,
+		selectedValues: Set<string>,
+		isMultiple?: boolean
+	): ValueSuggestionItem[] {
+		const source = fieldDef.suggesterSource;
+		if (!source) return [];
+
+		const files = source.type === 'folder'
+			? getFilesByFolder(this.plugin.app, source.value)
+			: getFilesByTag(this.plugin.app, source.value);
+
+		return files
+			.filter(file => {
+				if (isMultiple && selectedValues.has(file.name.toLowerCase())) return false;
+				return filter === '' || file.name.toLowerCase().includes(filter.toLowerCase());
+			})
+			.map(file => ({
+				displayText: file.name,
+				value: `[[${file.name}]]`,
+				fieldKey: fieldDef.key,
+				fieldPosition,
+				isMultiple
+			}));
 	}
 
 	renderSuggestion(suggestion: ValueSuggestionItem, el: HTMLElement): void {
@@ -159,20 +259,55 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 		const context = this.context;
 		if (!editor || !context) return;
 
-		const { value } = suggestion;
+		const { value, isMultiple, fieldPosition } = suggestion;
+		const view = getEditorView(editor);
+		if (!view) return;
 
-		// Use CodeMirror 6 transaction API for atomic text insertion + cursor positioning
-		const view = (editor as any).cm as EditorView;
 		const from = editor.posToOffset(context.start);
 		const to = editor.posToOffset(context.end);
 
-		// Build the new line content to find the next empty field
+		if (isMultiple) {
+			this.insertMultiSelectValue(view, from, to, value, fieldPosition);
+		} else {
+			this.insertSingleValue(view, editor, context, from, to, value);
+		}
+	}
+
+	private insertMultiSelectValue(
+		view: ReturnType<typeof getEditorView>,
+		from: number,
+		to: number,
+		value: string,
+		fieldPosition: FieldPosition
+	): void {
+		if (!view) return;
+
+		const currentFieldValue = fieldPosition.value.trim();
+		const cleanedCurrentValue = currentFieldValue.replace(/,\s*$/, '');
+		const newValue = cleanedCurrentValue ? `${cleanedCurrentValue}, ${value}` : value;
+		const newValueWithTrailing = newValue + ', ';
+
+		view.dispatch({
+			changes: { from, to, insert: newValueWithTrailing },
+			selection: { anchor: from + newValueWithTrailing.length }
+		});
+	}
+
+	private insertSingleValue(
+		view: ReturnType<typeof getEditorView>,
+		editor: Editor,
+		context: EditorSuggestContext,
+		from: number,
+		to: number,
+		value: string
+	): void {
+		if (!view) return;
+
 		const currentLine = editor.getLine(context.start.line);
 		const newLine = currentLine.substring(0, context.start.ch) + value + currentLine.substring(context.end.ch);
 		const insertedValueEnd = context.start.ch + value.length;
 		const nextField = findNextEmptyField(newLine, insertedValueEnd);
 
-		// Calculate cursor position: next empty field or end of inserted value
 		let cursorOffset: number;
 		if (nextField) {
 			cursorOffset = editor.posToOffset({ line: context.start.line, ch: nextField.valueStartPos });
