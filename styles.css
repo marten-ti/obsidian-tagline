@@ -1,3 +1,91 @@
+/* ===========================================
+   Inline Field Minimal (with separators)
+   =========================================== */
+
+.inline-field-minimal {
+	display: inline;
+	font-size: 0.95em;
+	vertical-align: baseline;
+}
+
+.inline-field-minimal--first {
+	margin-left: 8px;
+}
+
+.inline-field-minimal__key {
+	color: var(--text-faint);
+	font-size: 0.9em;
+}
+
+.inline-field-minimal__value {
+	color: var(--text-normal);
+}
+
+.inline-field-minimal__value--empty {
+	color: var(--text-faint);
+	font-style: italic;
+}
+
+.inline-field-minimal__value--truncated {
+	cursor: help;
+}
+
+.inline-field-minimal__value--more {
+	color: var(--text-muted);
+	font-size: 0.85em;
+	cursor: help;
+}
+
+.inline-field-minimal__link {
+	color: var(--text-accent);
+	text-decoration: underline;
+	text-decoration-color: var(--text-faint);
+	text-underline-offset: 2px;
+}
+
+.inline-field-minimal__separator {
+	color: var(--background-modifier-border);
+	margin: 0 4px;
+}
+
+/* ===========================================
+   Active Line Field Styling (when editing)
+   =========================================== */
+
+.inline-field-active__bracket-key {
+	color: var(--text-muted);
+	border-radius: 4px 0 0 4px;
+	background: var(--background-secondary);
+	padding: 1px 0 1px 4px;
+}
+
+.inline-field-active__separator {
+	color: var(--text-faint);
+	background: var(--background-secondary);
+}
+
+.inline-field-active__value {
+	color: var(--text-accent);
+	font-weight: 500;
+	background: var(--background-secondary);
+}
+
+.inline-field-active__value--empty {
+	color: var(--text-faint);
+	background: var(--background-secondary);
+}
+
+.inline-field-active__bracket {
+	color: var(--text-muted);
+	border-radius: 0 4px 4px 0;
+	background: var(--background-secondary);
+	padding-right: 4px;
+}
+
+/* ===========================================
+   Create Note Widget
+   =========================================== */
+
 .inline-template-notes-widget {
 	display: inline-flex;
 	margin-left: 4px;

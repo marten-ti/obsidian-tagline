@@ -4,6 +4,7 @@ import { EditorSelection } from '@codemirror/state';
 import { isInsideField, findNextField, findPrevField, getFieldPositions } from './editor/FieldNavigator';
 import { getEditorView } from './utils/editorHelpers';
 import { createCreateNoteExtension } from './editor/CreateNoteWidget';
+import { createFieldStylerExtension } from './editor/FieldStyler';
 import { InlineTemplateNotesSettingTab } from './settings';
 import { FieldInsertSuggestor } from './suggestor/FieldInsertSuggestor';
 import { FieldValueSuggestor } from './suggestor/FieldValueSuggestor';
@@ -28,6 +29,7 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 		this.registerEditorSuggest(new FieldValueSuggestor(this));
 
 		this.registerEditorExtension(createCreateNoteExtension(this));
+		this.registerEditorExtension(createFieldStylerExtension(this));
 
 		this.checkboxSyncService = new CheckboxSyncService(this.app, () => this.settings);
 		this.frontmatterWatcher = new FrontmatterWatcher(this.app, this.checkboxSyncService, () => this.settings);
