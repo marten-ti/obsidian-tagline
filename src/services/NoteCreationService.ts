@@ -1,4 +1,4 @@
-import type { TagConfiguration } from '../types';
+import type { TagConfiguration, FieldDefinition } from '../types';
 
 export function sanitizeFileName(title: string): string {
 	return title.replace(/[\\/:*?"<>|]/g, '-').trim();
@@ -14,6 +14,31 @@ export function formatFrontmatterValue(value: string): string {
 	return value;
 }
 
+export function formatMultipleValues(value: string): string[] {
+	// Split by comma, handling wikilinks that may contain commas
+	const values: string[] = [];
+	let current = '';
+	let bracketDepth = 0;
+
+	for (const char of value) {
+		if (char === '[') bracketDepth++;
+		if (char === ']') bracketDepth--;
+
+		if (char === ',' && bracketDepth === 0) {
+			const trimmed = current.trim();
+			if (trimmed) values.push(trimmed);
+			current = '';
+		} else {
+			current += char;
+		}
+	}
+
+	const trimmed = current.trim();
+	if (trimmed) values.push(trimmed);
+
+	return values;
+}
+
 export function buildFrontmatter(
 	fields: { key: string; value: string }[],
 	config: TagConfiguration
@@ -23,7 +48,20 @@ export function buildFrontmatter(
 	for (const fieldDef of config.fields) {
 		const field = fields.find(f => f.key === fieldDef.key);
 		const value = field?.value ?? fieldDef.defaultValue ?? '';
-		lines.push(`${fieldDef.key}: ${formatFrontmatterValue(value)}`);
+
+		if (fieldDef.multiple && value) {
+			const multipleValues = formatMultipleValues(value);
+			if (multipleValues.length > 0) {
+				lines.push(`${fieldDef.key}:`);
+				for (const v of multipleValues) {
+					lines.push(`  - ${formatFrontmatterValue(v)}`);
+				}
+			} else {
+				lines.push(`${fieldDef.key}: []`);
+			}
+		} else {
+			lines.push(`${fieldDef.key}: ${formatFrontmatterValue(value)}`);
+		}
 	}
 
 	lines.push('---');

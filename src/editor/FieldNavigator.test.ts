@@ -85,9 +85,16 @@ describe('getFieldPositions', () => {
 			expect(fields[0]?.key).toBe('new field name');
 		});
 
-		it('does not parse key with hyphen', () => {
+		it('parses key with hyphen', () => {
 			const fields = getFieldPositions('[my-field:: value]');
-			expect(fields).toHaveLength(0);
+			expect(fields).toHaveLength(1);
+			expect(fields[0]?.key).toBe('my-field');
+		});
+
+		it('parses key with ampersand', () => {
+			const fields = getFieldPositions('[date&time:: 2026-04-21]');
+			expect(fields).toHaveLength(1);
+			expect(fields[0]?.key).toBe('date&time');
 		});
 	});
 
@@ -100,6 +107,20 @@ describe('getFieldPositions', () => {
 		it('handles value with multiple words', () => {
 			const fields = getFieldPositions('[key:: multiple words here]');
 			expect(fields[0]?.value).toBe('multiple words here');
+		});
+
+		it('handles wikilink value', () => {
+			const fields = getFieldPositions('[People:: [[Frey, Florian]]]');
+			expect(fields).toHaveLength(1);
+			expect(fields[0]?.value).toBe('[[Frey, Florian]]');
+		});
+
+		it('handles multiple fields with wikilinks', () => {
+			const line = '[People:: [[John]]] [Project:: [[My Project]]]';
+			const fields = getFieldPositions(line);
+			expect(fields).toHaveLength(2);
+			expect(fields[0]?.value).toBe('[[John]]');
+			expect(fields[1]?.value).toBe('[[My Project]]');
 		});
 
 		it('handles value with special characters', () => {
