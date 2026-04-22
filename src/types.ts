@@ -11,6 +11,10 @@ export interface TagConfiguration {
 	outputFolder: string;
 	fieldSource: 'manual' | 'template';
 	fields: FieldDefinition[];
+	syncCheckbox?: boolean;
+	statusField?: string;
+	completedValue?: string;
+	incompleteValue?: string;
 }
 
 export type FieldType = 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'list';

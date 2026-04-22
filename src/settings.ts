@@ -185,6 +185,8 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 				new FolderSuggest(this.app, text.inputEl);
 			});
 
+		this.renderCheckboxSyncSettings(containerEl, config);
+
 		new Setting(containerEl)
 			.setName('Field source')
 			.setDesc('Where to get field definitions from')
@@ -223,6 +225,72 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 			this.renderTemplateFieldsPreview(containerEl, config);
 		} else {
 			this.renderManualFields(containerEl, config);
+		}
+	}
+
+	private renderCheckboxSyncSettings(containerEl: HTMLElement, config: TagConfiguration): void {
+		const descFragment = document.createDocumentFragment();
+		descFragment.appendText('Sync checkbox state with frontmatter status field');
+
+		if (config.syncCheckbox) {
+			descFragment.createEl('br');
+			const infoSpan = descFragment.createEl('span', {
+				cls: 'checkbox-sync-info',
+				attr: { style: 'font-size: 0.85em; opacity: 0.7;' }
+			});
+			infoSpan.appendText('For large vaults, install ');
+			const link = infoSpan.createEl('a', {
+				text: 'Backlink Cache',
+				href: 'obsidian://show-plugin?id=backlink-cache'
+			});
+			link.setAttr('target', '_blank');
+			infoSpan.appendText(' for better performance.');
+		}
+
+		new Setting(containerEl)
+			.setName('Checkbox sync')
+			.setDesc(descFragment)
+			.addToggle(toggle => toggle
+				.setValue(config.syncCheckbox || false)
+				.onChange(async (value) => {
+					config.syncCheckbox = value;
+					await this.plugin.saveSettings();
+					this.display();
+				}));
+
+		if (config.syncCheckbox) {
+			new Setting(containerEl)
+				.setName('Status field')
+				.setDesc('Frontmatter field to sync with checkbox')
+				.addText(text => text
+					.setPlaceholder('status')
+					.setValue(config.statusField || '')
+					.onChange(async (value) => {
+						config.statusField = value || undefined;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Completed value')
+				.setDesc('Value when checkbox is checked')
+				.addText(text => text
+					.setPlaceholder('Done')
+					.setValue(config.completedValue || '')
+					.onChange(async (value) => {
+						config.completedValue = value || undefined;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Incomplete value')
+				.setDesc('Value when checkbox is unchecked')
+				.addText(text => text
+					.setPlaceholder('To Do')
+					.setValue(config.incompleteValue || '')
+					.onChange(async (value) => {
+						config.incompleteValue = value || undefined;
+						await this.plugin.saveSettings();
+					}));
 		}
 	}
 

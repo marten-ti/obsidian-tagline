@@ -10,9 +10,14 @@ import { FieldValueSuggestor } from './suggestor/FieldValueSuggestor';
 import { detectTagsOnLine, getTextBeforeTag, extractLinePrefix, extractCleanTitle } from './parser/TagDetector';
 import { sanitizeFileName, buildFrontmatter, buildNoteContent, stripTemplateFrontmatter } from './services/NoteCreationService';
 import { DEFAULT_SETTINGS, PluginSettings } from './types';
+import { CheckboxSyncService } from './sync/CheckboxSyncService';
+import { createCheckboxSyncExtension } from './sync/CheckboxClickHandler';
+import { FrontmatterWatcher } from './sync/FrontmatterWatcher';
 
 export default class InlineTemplateNotesPlugin extends Plugin {
 	settings: PluginSettings;
+	private checkboxSyncService: CheckboxSyncService;
+	private frontmatterWatcher: FrontmatterWatcher;
 
 	async onload() {
 		await this.loadSettings();
@@ -23,6 +28,11 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 		this.registerEditorSuggest(new FieldValueSuggestor(this));
 
 		this.registerEditorExtension(createCreateNoteExtension(this));
+
+		this.checkboxSyncService = new CheckboxSyncService(this.app, () => this.settings);
+		this.frontmatterWatcher = new FrontmatterWatcher(this.app, this.checkboxSyncService, () => this.settings);
+		this.frontmatterWatcher.register(this);
+		this.registerEditorExtension(createCheckboxSyncExtension(this.checkboxSyncService));
 
 		this.registerDomEvent(document, 'keydown', (evt: KeyboardEvent) => {
 			if (evt.key !== 'Tab') return;
@@ -72,7 +82,9 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 		}, true);
 	}
 
-	onunload() {}
+	onunload() {
+		this.frontmatterWatcher?.destroy();
+	}
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
