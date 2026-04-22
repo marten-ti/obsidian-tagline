@@ -111,7 +111,7 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 
 		const { finalPath, finalFileName } = await this.getUniqueFilePath(filePath, fileName, config.outputFolder);
 
-		await this.app.vault.create(finalPath, content);
+		const createdFile = await this.createFileWithTemplaterSupport(finalPath, content);
 
 		const line = view.state.doc.line(lineIndex + 1);
 		const linkPath = config.outputFolder ? `${config.outputFolder}/${finalFileName}` : finalFileName;
@@ -131,6 +131,47 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 			return stripTemplateFrontmatter(content);
 		}
 		return '';
+	}
+
+	private async createFileWithTemplaterSupport(filePath: string, content: string): Promise<TFile> {
+		const templaterPlugin = (this.app as any).plugins?.plugins?.['templater-obsidian'];
+		const templater = templaterPlugin?.templater;
+		const pendingFiles = templater?.files_with_pending_templates as Set<string> | undefined;
+		const hasTemplaterSyntax = content.includes('<%');
+
+		// Suppress Templater's auto-trigger by adding to pending files before creation
+		const shouldSuppress = hasTemplaterSyntax && pendingFiles instanceof Set;
+		if (shouldSuppress) {
+			pendingFiles.add(filePath);
+		}
+
+		const createdFile = await this.app.vault.create(filePath, content);
+
+		if (shouldSuppress) {
+			// Wait for Templater's trigger check to pass (~300ms), then remove from pending
+			await new Promise(resolve => setTimeout(resolve, 350));
+			pendingFiles.delete(filePath);
+		}
+
+		// Process Templater syntax
+		if (hasTemplaterSyntax && templater && typeof templater.overwrite_file_commands === 'function') {
+			await this.waitForFileSettle(createdFile);
+			await templater.overwrite_file_commands.call(templater, createdFile);
+		}
+
+		return createdFile;
+	}
+
+	private async waitForFileSettle(file: TFile, timeout = 500): Promise<void> {
+		const start = Date.now();
+		let lastMtime = 0;
+
+		while (Date.now() - start < timeout) {
+			const stat = await this.app.vault.adapter.stat(file.path);
+			if (stat && stat.mtime === lastMtime) return;
+			lastMtime = stat?.mtime ?? 0;
+			await new Promise(resolve => setTimeout(resolve, 50));
+		}
 	}
 
 	private async getUniqueFilePath(
