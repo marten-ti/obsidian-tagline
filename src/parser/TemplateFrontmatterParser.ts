@@ -21,9 +21,19 @@ export function parseFieldsFromContent(content: string): FieldDefinition[] {
 	const fields: FieldDefinition[] = [];
 	const lines = frontmatter.split('\n');
 
-	for (const line of lines) {
-		const parsed = parseFrontmatterLine(line);
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i]!;
+		// Check if this line starts a multi-line array (key: followed by "- item" lines)
+		const isMultiLineArray = isStartOfMultiLineArray(line, lines, i + 1);
+		const parsed = parseFrontmatterLine(line, isMultiLineArray);
 		if (parsed) {
+			// Collect multi-line array items if applicable
+			if (parsed.type === 'list' && parsed.defaultValue === undefined) {
+				const arrayItems = collectMultiLineArrayItems(lines, i + 1);
+				if (arrayItems.length > 0) {
+					parsed.defaultValue = arrayItems.join(', ');
+				}
+			}
 			fields.push(parsed);
 		}
 	}
@@ -31,12 +41,50 @@ export function parseFieldsFromContent(content: string): FieldDefinition[] {
 	return fields;
 }
 
+function isStartOfMultiLineArray(line: string, lines: string[], nextIndex: number): boolean {
+	// Check if current line is "key:" or "key: " with empty value
+	const keyMatch = line.match(/^(\s*)([a-zA-Z_][a-zA-Z0-9_-]*)\s*:\s*(.*)$/);
+	if (!keyMatch) return false;
+
+	const value = keyMatch[3]?.split('#')[0]?.trim() ?? '';
+	if (value !== '') return false;
+
+	// Check if next non-empty line is an array item
+	for (let i = nextIndex; i < lines.length; i++) {
+		const nextLine = lines[i]!;
+		if (nextLine.trim() === '' || /^\s*#/.test(nextLine)) continue;
+		return /^\s*-\s+/.test(nextLine);
+	}
+	return false;
+}
+
+function collectMultiLineArrayItems(lines: string[], startIndex: number): string[] {
+	const items: string[] = [];
+
+	for (let i = startIndex; i < lines.length; i++) {
+		const line = lines[i]!;
+		// Match YAML array item: "  - value" or "- value" (with optional indentation)
+		const itemMatch = line.match(/^\s*-\s+(.+)$/);
+		if (itemMatch) {
+			const value = itemMatch[1]!.trim().replace(/^["']|["']$/g, '');
+			if (value) {
+				items.push(value);
+			}
+		} else if (line.trim() && !/^\s*#/.test(line)) {
+			// Non-empty, non-comment line that's not an array item - stop collecting
+			break;
+		}
+	}
+
+	return items;
+}
+
 function extractFrontmatterWithComments(content: string): string | null {
 	const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
 	return match?.[1] ?? null;
 }
 
-function parseFrontmatterLine(line: string): FieldDefinition | null {
+function parseFrontmatterLine(line: string, isMultiLineArray = false): FieldDefinition | null {
 	const keyValueMatch = line.match(/^(\s*)([a-zA-Z_][a-zA-Z0-9_-]*)\s*:\s*(.*)$/);
 	if (!keyValueMatch) return null;
 
@@ -68,7 +116,8 @@ function parseFrontmatterLine(line: string): FieldDefinition | null {
 		};
 	}
 
-	const inferredType = inferTypeFromValue(yamlValue);
+	// If lookahead detected a multi-line array, override type inference
+	const inferredType = isMultiLineArray ? 'list' : inferTypeFromValue(yamlValue);
 	return {
 		key,
 		type: inferredType,
@@ -161,7 +210,8 @@ function inferTypeFromValue(yamlValue: string): FieldType {
 		return 'date';
 	}
 
-	if (yamlValue === '[]') {
+	// Detect arrays: empty [], inline [a, b], or empty value (multi-line array follows)
+	if (yamlValue === '[]' || /^\[.+\]$/.test(yamlValue)) {
 		return 'list';
 	}
 
@@ -177,6 +227,16 @@ function parseYamlValue(yamlValue: string): string | undefined {
 		return undefined;
 	}
 
+	// Handle inline arrays with values: [tag1, tag2] or ["tag1", "tag2"]
+	const inlineArrayMatch = yamlValue.match(/^\[(.+)\]$/);
+	if (inlineArrayMatch && inlineArrayMatch[1]) {
+		const items = inlineArrayMatch[1]
+			.split(',')
+			.map(item => item.trim().replace(/^["']|["']$/g, ''))
+			.filter(item => item.length > 0);
+		return items.length > 0 ? items.join(', ') : undefined;
+	}
+
 	const quotedMatch = yamlValue.match(/^["'](.*)["']$/);
 	if (quotedMatch) {
 		return quotedMatch[1];
@@ -190,7 +250,7 @@ function parseYamlValue(yamlValue: string): string | undefined {
 		return yamlValue;
 	}
 
-	if (yamlValue && !yamlValue.startsWith('[') && !yamlValue.startsWith('{')) {
+	if (yamlValue && !yamlValue.startsWith('{')) {
 		return yamlValue;
 	}
 

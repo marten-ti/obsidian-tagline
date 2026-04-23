@@ -104,6 +104,46 @@ describe('parseFieldsFromContent', () => {
 				source: { type: 'folder', value: 'Projects/' }
 			});
 		});
+
+		it('parses inline array with values: [tag1, tag2]', () => {
+			const content = '---\ntags: [todo, discuss]\n---';
+			const fields = parseFieldsFromContent(content);
+			expect(fields[0]).toEqual({
+				key: 'tags',
+				type: 'list',
+				defaultValue: 'todo, discuss'
+			});
+		});
+
+		it('parses inline array with quoted values', () => {
+			const content = '---\ntags: ["todo", "discuss"]\n---';
+			const fields = parseFieldsFromContent(content);
+			expect(fields[0]).toEqual({
+				key: 'tags',
+				type: 'list',
+				defaultValue: 'todo, discuss'
+			});
+		});
+
+		it('parses multi-line array (indented dash syntax)', () => {
+			const content = '---\ntags:\n  - todo\n  - discuss\n---';
+			const fields = parseFieldsFromContent(content);
+			expect(fields[0]).toEqual({
+				key: 'tags',
+				type: 'list',
+				defaultValue: 'todo, discuss'
+			});
+		});
+
+		it('parses multi-line array (non-indented dash syntax)', () => {
+			const content = '---\ntags:\n- todo\n- discuss\n---';
+			const fields = parseFieldsFromContent(content);
+			expect(fields[0]).toEqual({
+				key: 'tags',
+				type: 'list',
+				defaultValue: 'todo, discuss'
+			});
+		});
 	});
 
 	describe('source filters', () => {

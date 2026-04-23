@@ -163,7 +163,7 @@ export class CheckboxSyncService {
 
 		const fileTags = cache.frontmatter.tags || [];
 		const normalizedFileTags = Array.isArray(fileTags)
-			? fileTags.map((t: string) => t.replace(/^#/, ''))
+			? fileTags.filter((t): t is string => typeof t === 'string').map(t => t.replace(/^#/, ''))
 			: [String(fileTags).replace(/^#/, '')];
 
 		const configs = this.getSettings().tagConfigurations;
