@@ -1,4 +1,4 @@
-import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting } from 'obsidian';
 import type InlineTemplateNotesPlugin from './main';
 import type { TagConfiguration, FieldDefinition, FieldType, SuggesterSourceType } from './types';
 import { parseTemplateFields } from './parser/TemplateFrontmatterParser';
@@ -207,9 +207,6 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					config.fieldSource = value as 'manual' | 'template';
 					await this.plugin.saveSettings();
-					if (value === 'template' && config.templatePath) {
-						await this.autoParseTemplate(config);
-					}
 					this.display();
 				}));
 
@@ -224,9 +221,7 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 						.onChange(async (value) => {
 							config.templatePath = value;
 							await this.plugin.saveSettings();
-							if (value) {
-								await this.autoParseTemplate(config);
-							}
+							this.display();
 						});
 					const folder = this.plugin.settings.defaultTemplateFolder || null;
 					new FileSuggest(this.app, text.inputEl, '.md', folder);
@@ -304,42 +299,42 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 		}
 	}
 
-	private async autoParseTemplate(config: TagConfiguration): Promise<void> {
-		if (!config.templatePath) return;
-
-		const fields = await parseTemplateFields(this.app, config.templatePath);
-		if (fields.length > 0) {
-			config.fields = fields;
-			await this.plugin.saveSettings();
-			this.display();
-		}
-	}
-
 	private renderTemplateFieldsPreview(containerEl: HTMLElement, config: TagConfiguration): void {
 		const previewContainer = containerEl.createDiv('fields-manual-container');
 
 		const header = previewContainer.createDiv('fields-manual-header');
 		header.createSpan({ text: 'Detected fields', cls: 'setting-item-name' });
 
-		const refreshBtn = header.createEl('button', { text: 'Refresh', cls: 'fields-add-btn' });
-		refreshBtn.addEventListener('click', async () => {
-			await this.autoParseTemplate(config);
-			new Notice(`Refreshed: ${config.fields.length} fields found`);
-		});
-
-		if (config.fields.length === 0) {
+		if (!config.templatePath) {
 			previewContainer.createDiv({
-				text: config.templatePath
-					? 'No fields found in template frontmatter.'
-					: 'Enter a template path to auto-detect fields.',
+				text: 'Enter a template path to see detected fields.',
 				cls: 'fields-preview-empty'
 			});
 			return;
 		}
 
-		const fieldList = previewContainer.createDiv('fields-list-editable');
+		previewContainer.createDiv({
+			text: 'Fields are read from the template when inserted.',
+			cls: 'setting-item-description fields-auto-note'
+		});
 
-		for (const field of config.fields) {
+		this.loadAndRenderTemplateFields(previewContainer, config.templatePath);
+	}
+
+	private async loadAndRenderTemplateFields(container: HTMLElement, templatePath: string): Promise<void> {
+		const fields = await parseTemplateFields(this.app, templatePath);
+
+		if (fields.length === 0) {
+			container.createDiv({
+				text: 'No fields found in template frontmatter.',
+				cls: 'fields-preview-empty'
+			});
+			return;
+		}
+
+		const fieldList = container.createDiv('fields-list-editable');
+
+		for (const field of fields) {
 			const row = fieldList.createDiv('field-row-editable field-row-readonly');
 
 			// Key group
