@@ -8,8 +8,9 @@ import {
 } from 'obsidian';
 import type InlineTemplateNotesPlugin from '../main';
 import { detectConfiguredTagOnLine, TagMatch } from '../parser/TagDetector';
+import { parseTemplateFields } from '../parser/TemplateFrontmatterParser';
 import { getEditorView } from '../utils/editorHelpers';
-import type { TagConfiguration } from '../types';
+import type { TagConfiguration, FieldDefinition } from '../types';
 
 interface SuggestionItem {
 	type: 'insert-fields';
@@ -79,14 +80,17 @@ export class FieldInsertSuggestor extends EditorSuggest<SuggestionItem> {
 		el.createEl('span', { text: suggestion.displayText });
 	}
 
-	selectSuggestion(suggestion: SuggestionItem, _evt: MouseEvent | KeyboardEvent): void {
+	async selectSuggestion(suggestion: SuggestionItem, _evt: MouseEvent | KeyboardEvent): Promise<void> {
 		const editor = this.context?.editor;
 		const context = this.context;
 		if (!editor || !context) return;
 
 		const { tagConfig } = suggestion;
 
-		const fieldStrings = tagConfig.fields.map(field => {
+		const fields = await this.getFieldsForConfig(tagConfig);
+		if (fields.length === 0) return;
+
+		const fieldStrings = fields.map(field => {
 			const defaultVal = field.defaultValue || '';
 			return `[${field.key}:: ${defaultVal}]`;
 		});
@@ -102,7 +106,7 @@ export class FieldInsertSuggestor extends EditorSuggest<SuggestionItem> {
 		// fieldsText format: " [key:: defaultValue] [key2:: ...]"
 		// Cursor should be after " [key:: " plus defaultValue length
 		let cursorOffset = from + fieldsText.length; // fallback: end of inserted text
-		const firstField = tagConfig.fields[0];
+		const firstField = fields[0];
 		if (firstField) {
 			// Position: from + 2 (space + "[") + key.length + 3 (":: ") + defaultValue.length
 			cursorOffset = from + 2 + firstField.key.length + 3 + (firstField.defaultValue?.length || 0);
@@ -113,5 +117,12 @@ export class FieldInsertSuggestor extends EditorSuggest<SuggestionItem> {
 			changes: { from, to, insert: fieldsText },
 			selection: { anchor: cursorOffset }
 		});
+	}
+
+	private async getFieldsForConfig(config: TagConfiguration): Promise<FieldDefinition[]> {
+		if (config.fieldSource === 'template' && config.templatePath) {
+			return parseTemplateFields(this.plugin.app, config.templatePath);
+		}
+		return config.fields;
 	}
 }
