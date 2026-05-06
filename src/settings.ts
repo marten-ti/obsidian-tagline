@@ -206,6 +206,9 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 				.setValue(config.fieldSource || 'manual')
 				.onChange(async (value) => {
 					config.fieldSource = value as 'manual' | 'template';
+					if (value === 'template') {
+						config.fields = [];
+					}
 					await this.plugin.saveSettings();
 					this.display();
 				}));

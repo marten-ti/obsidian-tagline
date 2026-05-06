@@ -1,4 +1,4 @@
-import type { TagConfiguration, FieldDefinition } from '../types';
+import type { FieldDefinition } from '../types';
 
 export function sanitizeFileName(title: string): string {
 	return title.replace(/[\\/:*?"<>|]/g, '-').trim();
@@ -39,13 +39,13 @@ export function formatMultipleValues(value: string): string[] {
 }
 
 export function buildFrontmatter(
-	fields: { key: string; value: string }[],
-	config: TagConfiguration
+	inlineFields: { key: string; value: string }[],
+	fieldDefinitions: FieldDefinition[]
 ): string {
 	const lines: string[] = ['---'];
 
-	for (const fieldDef of config.fields) {
-		const field = fields.find(f => f.key === fieldDef.key);
+	for (const fieldDef of fieldDefinitions) {
+		const field = inlineFields.find(f => f.key === fieldDef.key);
 		const value = field?.value ?? fieldDef.defaultValue ?? '';
 
 		if (fieldDef.type === 'list' && value) {

@@ -10,6 +10,7 @@ import { FieldInsertSuggestor } from './suggestor/FieldInsertSuggestor';
 import { FieldValueSuggestor } from './suggestor/FieldValueSuggestor';
 import { detectTagsOnLine, getTextBeforeTag, extractLinePrefix, extractCleanTitle } from './parser/TagDetector';
 import { sanitizeFileName, buildFrontmatter, buildNoteContent, stripTemplateFrontmatter } from './services/NoteCreationService';
+import { getEffectiveFields } from './services/FieldResolver';
 import { DEFAULT_SETTINGS, PluginSettings } from './types';
 import { CheckboxSyncService } from './sync/CheckboxSyncService';
 import { createCheckboxSyncExtension } from './sync/CheckboxClickHandler';
@@ -108,8 +109,9 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 		const { prefix } = extractLinePrefix(lineText);
 		const title = extractCleanTitle(textBeforeTag) || 'Untitled';
 
-		const fields = getFieldPositions(lineText);
-		const frontmatter = buildFrontmatter(fields, config);
+		const inlineFields = getFieldPositions(lineText);
+		const fieldDefinitions = await getEffectiveFields(this.app, config);
+		const frontmatter = buildFrontmatter(inlineFields, fieldDefinitions);
 		const templateContent = await this.getTemplateContent(config.templatePath);
 
 		const fileName = sanitizeFileName(title);

@@ -7,7 +7,7 @@ import {
 	buildNoteContent,
 	stripTemplateFrontmatter
 } from './NoteCreationService';
-import type { TagConfiguration } from '../types';
+import type { FieldDefinition } from '../types';
 
 describe('sanitizeFileName', () => {
 	it('removes backslashes', () => {
@@ -126,17 +126,11 @@ describe('formatMultipleValues', () => {
 });
 
 describe('buildFrontmatter', () => {
-	const baseConfig: TagConfiguration = {
-		tag: 'todo',
-		templatePath: '',
-		outputFolder: '',
-		fieldSource: 'manual',
-		fields: [
-			{ key: 'priority', type: 'text', source: { type: 'options', value: 'high,medium,low' } },
-			{ key: 'due', type: 'date' },
-			{ key: 'assignee', type: 'text' }
-		]
-	};
+	const baseFieldDefs: FieldDefinition[] = [
+		{ key: 'priority', type: 'text', source: { type: 'options', value: 'high,medium,low' } },
+		{ key: 'due', type: 'date' },
+		{ key: 'assignee', type: 'text' }
+	];
 
 	it('builds frontmatter with field values', () => {
 		const fields = [
@@ -145,7 +139,7 @@ describe('buildFrontmatter', () => {
 			{ key: 'assignee', value: 'John' }
 		];
 
-		const result = buildFrontmatter(fields, baseConfig);
+		const result = buildFrontmatter(fields, baseFieldDefs);
 
 		expect(result).toBe(
 			'---\n' +
@@ -157,16 +151,13 @@ describe('buildFrontmatter', () => {
 	});
 
 	it('uses default values when field is missing', () => {
-		const configWithDefaults: TagConfiguration = {
-			...baseConfig,
-			fields: [
-				{ key: 'priority', type: 'text', source: { type: 'options', value: 'high,medium,low' }, defaultValue: 'medium' },
-				{ key: 'status', type: 'text', defaultValue: 'open' }
-			]
-		};
+		const fieldDefsWithDefaults: FieldDefinition[] = [
+			{ key: 'priority', type: 'text', source: { type: 'options', value: 'high,medium,low' }, defaultValue: 'medium' },
+			{ key: 'status', type: 'text', defaultValue: 'open' }
+		];
 
 		const fields = [{ key: 'priority', value: 'high' }];
-		const result = buildFrontmatter(fields, configWithDefaults);
+		const result = buildFrontmatter(fields, fieldDefsWithDefaults);
 
 		expect(result).toBe(
 			'---\n' +
@@ -178,7 +169,7 @@ describe('buildFrontmatter', () => {
 
 	it('uses empty string when no value and no default', () => {
 		const fields: { key: string; value: string }[] = [];
-		const result = buildFrontmatter(fields, baseConfig);
+		const result = buildFrontmatter(fields, baseFieldDefs);
 
 		expect(result).toBe(
 			'---\n' +
@@ -191,12 +182,9 @@ describe('buildFrontmatter', () => {
 
 	it('quotes wikilinks in values', () => {
 		const fields = [{ key: 'assignee', value: '[[People/John]]' }];
-		const configWithAssignee: TagConfiguration = {
-			...baseConfig,
-			fields: [{ key: 'assignee', type: 'text' }]
-		};
+		const fieldDefs: FieldDefinition[] = [{ key: 'assignee', type: 'text' }];
 
-		const result = buildFrontmatter(fields, configWithAssignee);
+		const result = buildFrontmatter(fields, fieldDefs);
 
 		expect(result).toBe(
 			'---\n' +
@@ -205,36 +193,21 @@ describe('buildFrontmatter', () => {
 		);
 	});
 
-	it('handles empty fields array in config', () => {
-		const emptyConfig: TagConfiguration = {
-			tag: 'note',
-			templatePath: '',
-			outputFolder: '',
-			fieldSource: 'manual',
-			fields: []
-		};
-
-		const result = buildFrontmatter([], emptyConfig);
-
+	it('handles empty field definitions', () => {
+		const result = buildFrontmatter([], []);
 		expect(result).toBe('---\n---');
 	});
 
 	it('formats list values as YAML array', () => {
-		const configWithList: TagConfiguration = {
-			tag: 'meeting',
-			templatePath: '',
-			outputFolder: '',
-			fieldSource: 'manual',
-			fields: [
-				{ key: 'attendees', type: 'list', source: { type: 'tag', value: 'person' } }
-			]
-		};
+		const fieldDefs: FieldDefinition[] = [
+			{ key: 'attendees', type: 'list', source: { type: 'tag', value: 'person' } }
+		];
 
 		const fields = [
 			{ key: 'attendees', value: '[[John]], [[Jane]], [[Bob]]' }
 		];
 
-		const result = buildFrontmatter(fields, configWithList);
+		const result = buildFrontmatter(fields, fieldDefs);
 
 		expect(result).toBe(
 			'---\n' +
@@ -247,21 +220,15 @@ describe('buildFrontmatter', () => {
 	});
 
 	it('handles list values with trailing comma', () => {
-		const configWithList: TagConfiguration = {
-			tag: 'meeting',
-			templatePath: '',
-			outputFolder: '',
-			fieldSource: 'manual',
-			fields: [
-				{ key: 'attendees', type: 'list', source: { type: 'tag', value: 'person' } }
-			]
-		};
+		const fieldDefs: FieldDefinition[] = [
+			{ key: 'attendees', type: 'list', source: { type: 'tag', value: 'person' } }
+		];
 
 		const fields = [
 			{ key: 'attendees', value: '[[John]], [[Jane]], ' }
 		];
 
-		const result = buildFrontmatter(fields, configWithList);
+		const result = buildFrontmatter(fields, fieldDefs);
 
 		expect(result).toBe(
 			'---\n' +

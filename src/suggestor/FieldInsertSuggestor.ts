@@ -8,7 +8,7 @@ import {
 } from 'obsidian';
 import type InlineTemplateNotesPlugin from '../main';
 import { detectConfiguredTagOnLine, TagMatch } from '../parser/TagDetector';
-import { parseTemplateFields } from '../parser/TemplateFrontmatterParser';
+import { getEffectiveFields } from '../services/FieldResolver';
 import { getEditorView } from '../utils/editorHelpers';
 import type { TagConfiguration, FieldDefinition } from '../types';
 
@@ -120,9 +120,6 @@ export class FieldInsertSuggestor extends EditorSuggest<SuggestionItem> {
 	}
 
 	private async getFieldsForConfig(config: TagConfiguration): Promise<FieldDefinition[]> {
-		if (config.fieldSource === 'template' && config.templatePath) {
-			return parseTemplateFields(this.plugin.app, config.templatePath);
-		}
-		return config.fields;
+		return getEffectiveFields(this.plugin.app, config);
 	}
 }
