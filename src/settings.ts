@@ -1,16 +1,16 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import type InlineTemplateNotesPlugin from './main';
+import type TaglinePlugin from './main';
 import type { TagConfiguration, FieldDefinition, FieldType, SuggesterSourceType } from './types';
 import { parseTemplateFields } from './parser/TemplateFrontmatterParser';
 import { FolderSuggest } from './settings/FolderSuggest';
 import { FileSuggest } from './settings/FileSuggest';
 import { TagSuggest } from './settings/TagSuggest';
 
-export class InlineTemplateNotesSettingTab extends PluginSettingTab {
-	plugin: InlineTemplateNotesPlugin;
+export class TaglineSettingTab extends PluginSettingTab {
+	plugin: TaglinePlugin;
 	private expandedConfigs: Set<number> = new Set();
 
-	constructor(app: App, plugin: InlineTemplateNotesPlugin) {
+	constructor(app: App, plugin: TaglinePlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -18,7 +18,7 @@ export class InlineTemplateNotesSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.addClass('inline-template-notes-settings');
+		containerEl.addClass('tagline-settings');
 
 		this.renderGeneralSettings(containerEl);
 		this.renderTagConfigurations(containerEl);

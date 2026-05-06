@@ -1,13 +1,13 @@
 import { Extension, RangeSetBuilder } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 import { setIcon, setTooltip } from "obsidian";
-import type InlineTemplateNotesPlugin from "../main";
+import type TaglinePlugin from "../main";
 import { detectTagsOnLine } from "../parser/TagDetector";
 import { getFieldPositions } from "./FieldNavigator";
 
 class CreateNoteWidget extends WidgetType {
 	constructor(
-		private plugin: InlineTemplateNotesPlugin,
+		private plugin: TaglinePlugin,
 		private lineNumber: number,
 		private tag: string
 	) {
@@ -16,7 +16,7 @@ class CreateNoteWidget extends WidgetType {
 
 	toDOM(view: EditorView): HTMLElement {
 		const container = document.createElement("span");
-		container.className = "inline-template-notes-widget";
+		container.className = "tagline-widget";
 
 		const button = container.createEl("button", {
 			cls: "create-note-button",
@@ -58,7 +58,7 @@ class CreateNoteWidget extends WidgetType {
 	}
 }
 
-function buildDecorations(view: EditorView, plugin: InlineTemplateNotesPlugin): DecorationSet {
+function buildDecorations(view: EditorView, plugin: TaglinePlugin): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
 
 	if (!plugin?.settings?.tagConfigurations) {
@@ -91,7 +91,7 @@ function buildDecorations(view: EditorView, plugin: InlineTemplateNotesPlugin): 
 	return builder.finish();
 }
 
-export function createCreateNoteExtension(plugin: InlineTemplateNotesPlugin): Extension {
+export function createCreateNoteExtension(plugin: TaglinePlugin): Extension {
 	return ViewPlugin.fromClass(
 		class {
 			decorations: DecorationSet;

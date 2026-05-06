@@ -1,10 +1,10 @@
 {
-	"id": "inline-template-notes",
-	"name": "Inline Template Notes",
+	"id": "tagline",
+	"name": "Tagline",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Create notes from inline text with tag-driven template application and inline Dataview field editing via autocomplete pickers.",
+	"description": "Create notes from inline text with tag-driven templates. Add inline fields, get autocomplete suggestions, and convert lines to linked notes with frontmatter.",
 	"author": "Marten Tietje",
-	"authorUrl": "",
+	"authorUrl": "https://github.com/marten-ti",
 	"isDesktopOnly": false
 }

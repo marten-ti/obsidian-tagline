@@ -5,7 +5,7 @@ import { isInsideField, findNextField, findPrevField, getFieldPositions } from '
 import { getEditorView } from './utils/editorHelpers';
 import { createCreateNoteExtension } from './editor/CreateNoteWidget';
 import { createFieldStylerExtension } from './editor/FieldStyler';
-import { InlineTemplateNotesSettingTab } from './settings';
+import { TaglineSettingTab } from './settings';
 import { FieldInsertSuggestor } from './suggestor/FieldInsertSuggestor';
 import { FieldValueSuggestor } from './suggestor/FieldValueSuggestor';
 import { detectTagsOnLine, getTextBeforeTag, extractLinePrefix, extractCleanTitle } from './parser/TagDetector';
@@ -16,7 +16,7 @@ import { CheckboxSyncService } from './sync/CheckboxSyncService';
 import { createCheckboxSyncExtension } from './sync/CheckboxClickHandler';
 import { FrontmatterWatcher } from './sync/FrontmatterWatcher';
 
-export default class InlineTemplateNotesPlugin extends Plugin {
+export default class TaglinePlugin extends Plugin {
 	settings: PluginSettings;
 	private checkboxSyncService: CheckboxSyncService;
 	private frontmatterWatcher: FrontmatterWatcher;
@@ -24,7 +24,7 @@ export default class InlineTemplateNotesPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		this.addSettingTab(new InlineTemplateNotesSettingTab(this.app, this));
+		this.addSettingTab(new TaglineSettingTab(this.app, this));
 
 		this.registerEditorSuggest(new FieldInsertSuggestor(this));
 		this.registerEditorSuggest(new FieldValueSuggestor(this));

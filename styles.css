@@ -86,13 +86,13 @@
    Create Note Widget
    =========================================== */
 
-.inline-template-notes-widget {
+.tagline-widget {
 	display: inline-flex;
 	margin-left: 4px;
 	vertical-align: baseline;
 }
 
-.inline-template-notes-widget button.create-note-button {
+.tagline-widget button.create-note-button {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -111,18 +111,18 @@
 	vertical-align: baseline;
 }
 
-.inline-template-notes-widget button.create-note-button:hover {
+.tagline-widget button.create-note-button:hover {
 	background: var(--interactive-accent) !important;
 	color: var(--text-on-accent);
 	opacity: 1;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
 }
 
-.inline-template-notes-widget button.create-note-button:active {
+.tagline-widget button.create-note-button:active {
 	transform: scale(0.95);
 }
 
-.inline-template-notes-widget .create-note-button__icon {
+.tagline-widget .create-note-button__icon {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -130,24 +130,24 @@
 	height: 14px;
 }
 
-.inline-template-notes-widget .create-note-button__icon svg {
+.tagline-widget .create-note-button__icon svg {
 	width: 12px;
 	height: 12px;
 }
 
 /* Settings styles */
-.inline-template-notes-settings .settings-group {
+.tagline-settings .settings-group {
 	margin-bottom: 24px;
 }
 
-.inline-template-notes-settings .tag-config-details {
+.tagline-settings .tag-config-details {
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 8px;
 	margin-bottom: 8px;
 	overflow: hidden;
 }
 
-.inline-template-notes-settings .tag-config-summary {
+.tagline-settings .tag-config-summary {
 	padding: 12px 16px;
 	cursor: pointer;
 	background: var(--background-secondary);
@@ -157,22 +157,22 @@
 	gap: 10px;
 }
 
-.inline-template-notes-settings .tag-config-summary::-webkit-details-marker {
+.tagline-settings .tag-config-summary::-webkit-details-marker {
 	display: none;
 }
 
-.inline-template-notes-settings .tag-config-summary::before {
+.tagline-settings .tag-config-summary::before {
 	content: '▶';
 	font-size: 0.9em;
 	transition: transform 0.15s ease;
 	flex-shrink: 0;
 }
 
-.inline-template-notes-settings details[open] .tag-config-summary::before {
+.tagline-settings details[open] .tag-config-summary::before {
 	transform: rotate(90deg);
 }
 
-.inline-template-notes-settings .tag-config-summary-content {
+.tagline-settings .tag-config-summary-content {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -181,7 +181,7 @@
 	min-width: 0;
 }
 
-.inline-template-notes-settings .tag-config-info {
+.tagline-settings .tag-config-info {
 	display: flex;
 	align-items: center;
 	gap: 16px;
@@ -190,17 +190,17 @@
 	min-width: 0;
 }
 
-.inline-template-notes-settings .tag-config-tag {
+.tagline-settings .tag-config-tag {
 	font-weight: 600;
 	color: var(--text-accent);
 }
 
-.inline-template-notes-settings .tag-config-field-count {
+.tagline-settings .tag-config-field-count {
 	color: var(--text-muted);
 	font-size: 0.9em;
 }
 
-.inline-template-notes-settings .tag-config-template {
+.tagline-settings .tag-config-template {
 	color: var(--text-faint);
 	font-size: 0.85em;
 	overflow: hidden;
@@ -209,21 +209,21 @@
 	max-width: 250px;
 }
 
-.inline-template-notes-settings .tag-config-delete {
+.tagline-settings .tag-config-delete {
 	flex-shrink: 0;
 }
 
-.inline-template-notes-settings .tag-config-content {
+.tagline-settings .tag-config-content {
 	padding: 16px;
 	border-top: 1px solid var(--background-modifier-border);
 }
 
-.inline-template-notes-settings .fields-container {
+.tagline-settings .fields-container {
 	margin-top: 12px;
 	padding-left: 12px;
 }
 
-.inline-template-notes-settings .field-config {
+.tagline-settings .field-config {
 	margin-left: 12px;
 	margin-bottom: 8px;
 	padding: 12px;
@@ -231,37 +231,37 @@
 	border-radius: 6px;
 }
 
-.inline-template-notes-settings .fields-preview {
+.tagline-settings .fields-preview {
 	margin-top: 12px;
 	padding: 12px;
 	background: var(--background-secondary);
 	border-radius: 6px;
 }
 
-.inline-template-notes-settings .fields-preview-header {
+.tagline-settings .fields-preview-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: 8px;
 }
 
-.inline-template-notes-settings .fields-refresh-btn {
+.tagline-settings .fields-refresh-btn {
 	font-size: 0.85em;
 	padding: 4px 8px;
 }
 
-.inline-template-notes-settings .fields-preview-empty {
+.tagline-settings .fields-preview-empty {
 	color: var(--text-muted);
 	font-style: italic;
 	padding: 8px 0;
 }
 
 /* Readonly field rows (for detected fields) */
-.inline-template-notes-settings .field-row-readonly {
+.tagline-settings .field-row-readonly {
 	background: var(--background-secondary);
 }
 
-.inline-template-notes-settings .field-value {
+.tagline-settings .field-value {
 	font-family: var(--font-monospace);
 	font-size: 0.85em;
 	padding: 4px 8px;
@@ -270,42 +270,42 @@
 	border-radius: 4px;
 }
 
-.inline-template-notes-settings .field-value-key {
+.tagline-settings .field-value-key {
 	font-weight: 600;
 }
 
-.inline-template-notes-settings .field-value-source {
+.tagline-settings .field-value-source {
 	color: var(--text-accent);
 }
 
 /* Manual fields container */
-.inline-template-notes-settings .fields-manual-container {
+.tagline-settings .fields-manual-container {
 	margin-top: 12px;
 	padding: 12px;
 	background: var(--background-secondary);
 	border-radius: 6px;
 }
 
-.inline-template-notes-settings .fields-manual-header {
+.tagline-settings .fields-manual-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: 12px;
 }
 
-.inline-template-notes-settings .fields-add-btn {
+.tagline-settings .fields-add-btn {
 	font-size: 0.85em;
 	padding: 4px 10px;
 }
 
-.inline-template-notes-settings .fields-list-editable {
+.tagline-settings .fields-list-editable {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
 }
 
 /* Compact editable field row */
-.inline-template-notes-settings .field-row-editable {
+.tagline-settings .field-row-editable {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -315,25 +315,25 @@
 	min-width: max-content;
 }
 
-.inline-template-notes-settings .field-group {
+.tagline-settings .field-group {
 	display: flex;
 	align-items: center;
 	gap: 4px;
 	flex-shrink: 0;
 }
 
-.inline-template-notes-settings .field-group-source {
+.tagline-settings .field-group-source {
 	flex-shrink: 0;
 }
 
-.inline-template-notes-settings .field-label {
+.tagline-settings .field-label {
 	font-size: 0.8em;
 	color: var(--text-muted);
 	white-space: nowrap;
 	flex-shrink: 0;
 }
 
-.inline-template-notes-settings .field-input {
+.tagline-settings .field-input {
 	font-family: var(--font-monospace);
 	font-size: 0.85em;
 	padding: 4px 8px;
@@ -343,12 +343,12 @@
 	min-width: 0;
 }
 
-.inline-template-notes-settings .field-key-input {
+.tagline-settings .field-key-input {
 	width: 90px;
 	font-weight: 600;
 }
 
-.inline-template-notes-settings .field-select {
+.tagline-settings .field-select {
 	font-family: var(--font-monospace);
 	font-size: 0.85em;
 	padding: 4px 6px;
@@ -358,23 +358,23 @@
 	flex-shrink: 0;
 }
 
-.inline-template-notes-settings .field-type-select {
+.tagline-settings .field-type-select {
 	width: 85px;
 }
 
-.inline-template-notes-settings .field-source-select {
+.tagline-settings .field-source-select {
 	width: 75px;
 }
 
-.inline-template-notes-settings .field-source-input {
+.tagline-settings .field-source-input {
 	width: 100px;
 }
 
-.inline-template-notes-settings .field-default-input {
+.tagline-settings .field-default-input {
 	width: 80px;
 }
 
-.inline-template-notes-settings .field-remove-btn {
+.tagline-settings .field-remove-btn {
 	padding: 4px 8px;
 	font-size: 1.1em;
 	line-height: 1;
@@ -387,18 +387,18 @@
 	margin-left: auto;
 }
 
-.inline-template-notes-settings .field-remove-btn:hover {
+.tagline-settings .field-remove-btn:hover {
 	background: var(--background-modifier-error);
 	color: var(--text-on-accent);
 }
 
 /* Horizontal scroll for fields list on narrow screens */
-.inline-template-notes-settings .fields-list-editable {
+.tagline-settings .fields-list-editable {
 	overflow-x: auto;
 	padding-bottom: 4px;
 }
 
-.inline-template-notes-settings .fields-manual-container {
+.tagline-settings .fields-manual-container {
 	overflow-x: auto;
 }
 

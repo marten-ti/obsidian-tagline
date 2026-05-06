@@ -6,7 +6,7 @@ import {
 	EditorSuggestTriggerInfo,
 	TFile
 } from 'obsidian';
-import type InlineTemplateNotesPlugin from '../main';
+import type TaglinePlugin from '../main';
 import { isInsideField, FieldPosition, findNextEmptyField } from '../editor/FieldNavigator';
 import { detectConfiguredTagOnLine } from '../parser/TagDetector';
 import { getEditorView } from '../utils/editorHelpers';
@@ -23,9 +23,9 @@ interface ValueSuggestionItem {
 }
 
 export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
-	plugin: InlineTemplateNotesPlugin;
+	plugin: TaglinePlugin;
 
-	constructor(plugin: InlineTemplateNotesPlugin) {
+	constructor(plugin: TaglinePlugin) {
 		super(plugin.app);
 		this.plugin = plugin;
 	}

@@ -6,7 +6,7 @@ import {
 	EditorSuggestTriggerInfo,
 	TFile
 } from 'obsidian';
-import type InlineTemplateNotesPlugin from '../main';
+import type TaglinePlugin from '../main';
 import { detectConfiguredTagOnLine, TagMatch } from '../parser/TagDetector';
 import { getEffectiveFields } from '../services/FieldResolver';
 import { getEditorView } from '../utils/editorHelpers';
@@ -20,9 +20,9 @@ interface SuggestionItem {
 }
 
 export class FieldInsertSuggestor extends EditorSuggest<SuggestionItem> {
-	plugin: InlineTemplateNotesPlugin;
+	plugin: TaglinePlugin;
 
-	constructor(plugin: InlineTemplateNotesPlugin) {
+	constructor(plugin: TaglinePlugin) {
 		super(plugin.app);
 		this.plugin = plugin;
 	}

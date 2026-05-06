@@ -1,6 +1,6 @@
 import { Extension, RangeSetBuilder } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
-import type InlineTemplateNotesPlugin from "../main";
+import type TaglinePlugin from "../main";
 import { detectTagsOnLine } from "../parser/TagDetector";
 import { getFieldPositions, FieldPosition } from "./FieldNavigator";
 
@@ -158,7 +158,7 @@ class FieldMinimalWidget extends WidgetType {
 	}
 }
 
-function buildFieldDecorations(view: EditorView, plugin: InlineTemplateNotesPlugin): DecorationSet {
+function buildFieldDecorations(view: EditorView, plugin: TaglinePlugin): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
 
 	if (!plugin?.settings?.tagConfigurations) {
@@ -255,7 +255,7 @@ function buildFieldDecorations(view: EditorView, plugin: InlineTemplateNotesPlug
 	return builder.finish();
 }
 
-export function createFieldStylerExtension(plugin: InlineTemplateNotesPlugin): Extension {
+export function createFieldStylerExtension(plugin: TaglinePlugin): Extension {
 	return ViewPlugin.fromClass(
 		class {
 			decorations: DecorationSet;
