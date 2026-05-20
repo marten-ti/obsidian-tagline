@@ -2,6 +2,8 @@
 
 An Obsidian plugin that lets you create notes from inline text using tag-driven templates. Write a line with a tag, add inline fields, and convert it to a linked note with proper frontmatter.
 
+![Tagline demo](demo.gif)
+
 ## Features
 
 - **Tag-triggered note creation**: Configure templates for specific tags (e.g., `#todo`, `#meeting`, `#person`)

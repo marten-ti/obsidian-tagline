@@ -29,6 +29,6 @@
 	"dependencies": {
 		"@codemirror/state": "^6.6.0",
 		"@codemirror/view": "^6.41.1",
-		"obsidian": "latest"
+		"obsidian": "1.12.3"
 	}
 }
