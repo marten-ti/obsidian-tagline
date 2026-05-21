@@ -2,7 +2,16 @@
    Inline Field Minimal (with separators)
    =========================================== */
 
-.inline-field-minimal {
+.inline-field-hidden-indicator {
+	color: var(--text-faint);
+	font-size: 0.85em;
+	letter-spacing: 0.1em;
+	margin-left: 6px;
+	cursor: default;
+	vertical-align: baseline;
+}
+
+
 	display: inline;
 	font-size: 0.95em;
 	vertical-align: baseline;

@@ -6,6 +6,32 @@ import { detectTagsOnLine } from "../parser/TagDetector";
 import { getFieldPositions, FieldPosition } from "./FieldNavigator";
 
 // =============================================================================
+// Hidden fields indicator widget (hiding mode)
+// =============================================================================
+
+class HiddenFieldsWidget extends WidgetType {
+	constructor(private fieldCount: number) {
+		super();
+	}
+
+	toDOM(): HTMLElement {
+		const el = document.createElement("span");
+		el.className = "inline-field-hidden-indicator";
+		el.textContent = "···";
+		el.title = `${this.fieldCount} hidden field${this.fieldCount !== 1 ? "s" : ""}`;
+		return el;
+	}
+
+	eq(other: WidgetType): boolean {
+		return other instanceof HiddenFieldsWidget && other.fieldCount === this.fieldCount;
+	}
+
+	ignoreEvent(): boolean {
+		return false;
+	}
+}
+
+// =============================================================================
 // Shared DOM builder
 // =============================================================================
 
@@ -177,10 +203,13 @@ function buildFieldDecorations(view: EditorView, plugin: TaglinePlugin): Decorat
 				decorations.push({ from: to - 1, to, decoration: Decoration.mark({ class: "inline-field-active__bracket" }) });
 			}
 		} else if (plugin.settings.inlineTagStyle === 'hiding') {
-			for (const field of fields) {
-				if (!field) continue;
-				decorations.push({ from: line.from + field.startPos, to: line.from + field.endPos, decoration: Decoration.replace({}) });
-			}
+			const first = fields[0]!;
+			const last = fields[fields.length - 1]!;
+			decorations.push({
+				from: line.from + first.startPos,
+				to: line.from + last.endPos,
+				decoration: Decoration.replace({ widget: new HiddenFieldsWidget(fields.length) })
+			});
 		} else {
 			for (let j = 0; j < fields.length; j++) {
 				const field = fields[j];
