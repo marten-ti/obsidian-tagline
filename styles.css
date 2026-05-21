@@ -140,6 +140,43 @@
 	margin-bottom: 24px;
 }
 
+/* Segmented button group for style picker */
+.tagline-settings .tagline-btn-group {
+	display: flex;
+	gap: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.tagline-settings .tagline-btn-group button {
+	flex: 1;
+	padding: 5px 14px;
+	background: var(--background-primary);
+	color: var(--text-muted);
+	border: none;
+	border-right: 1px solid var(--background-modifier-border);
+	border-radius: 0;
+	cursor: pointer;
+	font-size: 0.9em;
+	transition: background 0.1s, color 0.1s;
+	box-shadow: none;
+}
+
+.tagline-settings .tagline-btn-group button:last-child {
+	border-right: none;
+}
+
+.tagline-settings .tagline-btn-group button:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.tagline-settings .tagline-btn-group button.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
 .tagline-settings .tag-config-details {
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 8px;

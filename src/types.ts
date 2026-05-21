@@ -3,7 +3,7 @@ export interface PluginSettings {
 	openNoteAfterCreation: boolean;
 	defaultTemplateFolder: string;
 	linkFormat: 'wiki' | 'markdown';
-	enableFieldStyling: boolean;
+	inlineTagStyle: 'none' | 'styling' | 'hiding';
 }
 
 export interface TagConfiguration {
@@ -39,5 +39,5 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	openNoteAfterCreation: false,
 	defaultTemplateFolder: '',
 	linkFormat: 'wiki',
-	enableFieldStyling: true
+	inlineTagStyle: 'styling'
 };

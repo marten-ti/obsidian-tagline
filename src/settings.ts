@@ -67,15 +67,37 @@ export class TaglineSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(generalGroup)
-			.setName('Style inline fields')
-			.setDesc('Display fields with visual styling (requires reload to take effect)')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.enableFieldStyling)
-				.onChange(async (value) => {
-					this.plugin.settings.enableFieldStyling = value;
-					await this.plugin.saveSettings();
-				}));
+		const stylingGroup = containerEl.createDiv('settings-group');
+
+		new Setting(stylingGroup)
+			.setName('Styling')
+			.setHeading();
+
+		new Setting(stylingGroup)
+			.setName('Inline tag style')
+			.setDesc('How to display tagged lines in the editor when the cursor is elsewhere')
+			.then(setting => {
+				const options: { value: 'none' | 'styling' | 'hiding'; label: string }[] = [
+					{ value: 'none', label: 'None' },
+					{ value: 'styling', label: 'Styling' },
+					{ value: 'hiding', label: 'Hiding' },
+				];
+
+				const group = setting.controlEl.createDiv('tagline-btn-group');
+
+				const buttons = options.map(opt => {
+					const btn = group.createEl('button', { text: opt.label });
+					if (this.plugin.settings.inlineTagStyle === opt.value) {
+						btn.classList.add('is-active');
+					}
+					btn.addEventListener('click', async () => {
+						this.plugin.settings.inlineTagStyle = opt.value;
+						await this.plugin.saveSettings();
+						buttons.forEach((b, i) => b.classList.toggle('is-active', options[i]?.value === opt.value));
+					});
+					return btn;
+				});
+			});
 	}
 
 	private renderTagConfigurations(containerEl: HTMLElement): void {
