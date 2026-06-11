@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import type TaglinePlugin from './main';
 import type { TagConfiguration, FieldDefinition, FieldType, SuggesterSourceType } from './types';
 import { parseTemplateFields } from './parser/TemplateFrontmatterParser';
+import { getEffectiveFields } from './services/FieldResolver';
 import { FolderSuggest } from './settings/FolderSuggest';
 import { FileSuggest } from './settings/FileSuggest';
 import { TagSuggest } from './settings/TagSuggest';
@@ -141,8 +142,6 @@ export class TaglineSettingTab extends PluginSettingTab {
 
 	private renderCollapsibleTagConfig(containerEl: HTMLElement, config: TagConfiguration, index: number): void {
 		const isExpanded = this.expandedConfigs.has(index);
-		const fieldCount = config.fields.length;
-		const fieldSummary = fieldCount === 1 ? '1 field' : `${fieldCount} fields`;
 
 		const details = containerEl.createEl('details', { cls: 'tag-config-details' });
 		if (isExpanded) {
@@ -162,7 +161,14 @@ export class TaglineSettingTab extends PluginSettingTab {
 
 		const tagInfo = summaryContent.createDiv('tag-config-info');
 		tagInfo.createSpan({ text: `#${config.tag}`, cls: 'tag-config-tag' });
-		tagInfo.createSpan({ text: fieldSummary, cls: 'tag-config-field-count' });
+		const fieldCountSpan = tagInfo.createSpan({ cls: 'tag-config-field-count' });
+		const updateFieldCount = (count: number) => {
+			fieldCountSpan.setText(count === 1 ? '1 field' : `${count} fields`);
+		};
+		updateFieldCount(config.fields.length);
+		if (config.fieldSource === 'template' && config.templatePath) {
+			getEffectiveFields(this.plugin.app, config).then(fields => updateFieldCount(fields.length));
+		}
 
 		if (config.templatePath) {
 			tagInfo.createSpan({ text: config.templatePath, cls: 'tag-config-template' });

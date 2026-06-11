@@ -11,18 +11,20 @@ import { FieldValueSuggestor } from './suggestor/FieldValueSuggestor';
 import { detectTagsOnLine, getTextBeforeTag, extractLinePrefix, extractCleanTitle } from './parser/TagDetector';
 import { sanitizeFileName, buildFrontmatter, buildNoteContent, stripTemplateFrontmatter } from './services/NoteCreationService';
 import { getEffectiveFields } from './services/FieldResolver';
-import { DEFAULT_SETTINGS, PluginSettings } from './types';
+import { DEFAULT_SETTINGS, PluginSettings, FieldDefinition } from './types';
 import { CheckboxSyncService } from './sync/CheckboxSyncService';
 import { createCheckboxSyncExtension } from './sync/CheckboxClickHandler';
 import { FrontmatterWatcher } from './sync/FrontmatterWatcher';
 
 export default class TaglinePlugin extends Plugin {
 	settings: PluginSettings;
+	resolvedFieldsCache: Map<string, FieldDefinition[]> = new Map();
 	private checkboxSyncService: CheckboxSyncService;
 	private frontmatterWatcher: FrontmatterWatcher;
 
 	async onload() {
 		await this.loadSettings();
+		await this.rebuildFieldsCache();
 
 		this.addSettingTab(new TaglineSettingTab(this.app, this));
 
@@ -36,6 +38,15 @@ export default class TaglinePlugin extends Plugin {
 		this.frontmatterWatcher = new FrontmatterWatcher(this.app, this.checkboxSyncService, () => this.settings);
 		this.frontmatterWatcher.register(this);
 		this.registerEditorExtension(createCheckboxSyncExtension(this.checkboxSyncService));
+
+		this.registerEvent(this.app.vault.on('modify', (file) => {
+			const isTemplatePath = this.settings.tagConfigurations.some(
+				c => c.fieldSource === 'template' && c.templatePath === file.path
+			);
+			if (isTemplatePath) {
+				this.rebuildFieldsCache();
+			}
+		}));
 
 		this.registerDomEvent(document, 'keydown', (evt: KeyboardEvent) => {
 			if (evt.key !== 'Tab') return;
@@ -95,6 +106,15 @@ export default class TaglinePlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		await this.rebuildFieldsCache();
+	}
+
+	async rebuildFieldsCache() {
+		const cache = new Map<string, FieldDefinition[]>();
+		for (const config of this.settings.tagConfigurations) {
+			cache.set(config.tag, await getEffectiveFields(this.app, config));
+		}
+		this.resolvedFieldsCache = cache;
 	}
 
 	async createNoteFromLine(lineText: string, tagName: string, view: EditorView, lineIndex: number): Promise<void> {

@@ -49,7 +49,8 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 			return null;
 		}
 
-		const fieldDef = tagConfig.fields.find(f =>
+		const fields = this.plugin.resolvedFieldsCache.get(tagMatch.tag) ?? tagConfig.fields;
+		const fieldDef = fields.find(f =>
 			f.key.toLowerCase() === fieldPosition.key.toLowerCase()
 		);
 		if (!fieldDef) {
@@ -88,7 +89,8 @@ export class FieldValueSuggestor extends EditorSuggest<ValueSuggestionItem> {
 			return [];
 		}
 
-		const fieldDef = tagConfig.fields.find(f =>
+		const fields = this.plugin.resolvedFieldsCache.get(tagName) ?? tagConfig.fields;
+		const fieldDef = fields.find(f =>
 			f.key.toLowerCase() === fieldKey.toLowerCase()
 		);
 		if (!fieldDef) {
