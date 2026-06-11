@@ -1,6 +1,7 @@
 import { MarkdownView, Plugin, TFile, normalizePath } from 'obsidian';
 import { EditorView } from '@codemirror/view';
-import { EditorSelection } from '@codemirror/state';
+import { EditorSelection, Prec } from '@codemirror/state';
+import { keymap } from '@codemirror/view';
 import { isInsideField, findNextField, findPrevField, getFieldPositions } from './editor/FieldNavigator';
 import { getEditorView } from './utils/editorHelpers';
 import { createCreateNoteExtension } from './editor/CreateNoteWidget';
@@ -33,6 +34,30 @@ export default class TaglinePlugin extends Plugin {
 
 		this.registerEditorExtension(createCreateNoteExtension(this));
 		this.registerEditorExtension(createFieldStylerExtension(this));
+		this.registerEditorExtension(this.createNoteHotkeyExtension());
+
+		this.addCommand({
+			id: 'create-note-from-line',
+			name: 'Create note from current line',
+			editorCheckCallback: (checking, editor) => {
+				const cmView = getEditorView(editor);
+				if (!cmView) return false;
+
+				const pos = cmView.state.selection.main.head;
+				const line = cmView.state.doc.lineAt(pos);
+				const configuredTags = this.settings.tagConfigurations.map(c => c.tag);
+				if (configuredTags.length === 0) return false;
+
+				const tags = detectTagsOnLine(line.text);
+				const matchedTag = tags.find(t => configuredTags.includes(t.tag));
+				if (!matchedTag) return false;
+
+				if (!checking) {
+					void this.createNoteFromLine(line.text, matchedTag.tag, cmView, line.number - 1);
+				}
+				return true;
+			},
+		});
 
 		this.checkboxSyncService = new CheckboxSyncService(this.app, () => this.settings);
 		this.frontmatterWatcher = new FrontmatterWatcher(this.app, this.checkboxSyncService, () => this.settings);
@@ -94,6 +119,32 @@ export default class TaglinePlugin extends Plugin {
 				}
 			}
 		}, true);
+	}
+
+	private createNoteHotkeyExtension() {
+		const handler = (cmView: EditorView): boolean => {
+			return this.tryCreateNoteAtCursor(cmView);
+		};
+		return Prec.highest(
+			keymap.of([
+				{ key: 'Mod-Enter', run: handler, preventDefault: true },
+			])
+		);
+	}
+
+	private tryCreateNoteAtCursor(cmView: EditorView): boolean {
+		const pos = cmView.state.selection.main.head;
+		const line = cmView.state.doc.lineAt(pos);
+
+		const configuredTags = this.settings.tagConfigurations.map(c => c.tag);
+		if (configuredTags.length === 0) return false;
+
+		const tags = detectTagsOnLine(line.text);
+		const matchedTag = tags.find(t => configuredTags.includes(t.tag));
+		if (!matchedTag) return false;
+
+		void this.createNoteFromLine(line.text, matchedTag.tag, cmView, line.number - 1);
+		return true;
 	}
 
 	onunload() {
