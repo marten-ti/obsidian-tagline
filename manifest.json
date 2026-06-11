@@ -1,7 +1,7 @@
 {
 	"id": "tagline",
 	"name": "Tagline",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"minAppVersion": "0.15.0",
 	"description": "Create notes from inline text with tag-driven templates. Add inline fields, get autocomplete suggestions, and convert lines to linked notes with frontmatter.",
 	"author": "Marten Tietje",
