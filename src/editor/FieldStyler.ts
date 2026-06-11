@@ -191,16 +191,39 @@ function buildFieldDecorations(view: EditorView, plugin: TaglinePlugin): Decorat
 		const isActiveLine = view.state.doc.lineAt(view.state.selection.main.head).number === i;
 
 		if (isActiveLine) {
-			for (const field of fields) {
+			const cursorCh = view.state.selection.main.head - line.from;
+			// Identify which field (if any) currently contains the cursor — that
+			// field is rendered as source (with hidden outer brackets) so the
+			// user can edit it. All other fields on the active line render as
+			// compact FieldMinimalWidget chips, same as on inactive lines.
+			const activeFieldIdx = fields.findIndex(
+				f => f && cursorCh >= f.startPos && cursorCh <= f.endPos
+			);
+
+			for (let j = 0; j < fields.length; j++) {
+				const field = fields[j];
 				if (!field) continue;
-				const from = line.from + field.startPos;
-				const keyEnd = line.from + field.startPos + 1 + field.key.length;
-				const separatorEnd = keyEnd + 3;
-				const to = line.from + field.endPos;
-				decorations.push({ from, to: keyEnd, decoration: Decoration.mark({ class: "inline-field-active__bracket-key" }) });
-				decorations.push({ from: keyEnd, to: separatorEnd, decoration: Decoration.mark({ class: "inline-field-active__separator" }) });
-				decorations.push({ from: separatorEnd, to: to - 1, decoration: Decoration.mark({ class: field.value ? "inline-field-active__value" : "inline-field-active__value--empty" }) });
-				decorations.push({ from: to - 1, to, decoration: Decoration.mark({ class: "inline-field-active__bracket" }) });
+
+				if (j === activeFieldIdx) {
+					const from = line.from + field.startPos;
+					const keyEnd = line.from + field.startPos + 1 + field.key.length;
+					const separatorEnd = keyEnd + 3;
+					const to = line.from + field.endPos;
+					// Hide outer [ and ] via CSS (font-size: 0). Source chars stay in
+					// place so the cursor and the field-value suggestor's trigger range
+					// are unaffected. Value range is left untouched so Obsidian's native
+					// wikilink rendering applies inside the field.
+					decorations.push({ from, to: from + 1, decoration: Decoration.mark({ class: "inline-field-active__bracket-hidden" }) });
+					decorations.push({ from: from + 1, to: keyEnd, decoration: Decoration.mark({ class: "inline-field-active__key" }) });
+					decorations.push({ from: keyEnd, to: separatorEnd, decoration: Decoration.mark({ class: "inline-field-active__separator" }) });
+					decorations.push({ from: to - 1, to, decoration: Decoration.mark({ class: "inline-field-active__bracket-hidden" }) });
+				} else {
+					decorations.push({
+						from: line.from + field.startPos,
+						to: line.from + field.endPos,
+						decoration: Decoration.replace({ widget: new FieldMinimalWidget(field, j === 0, j === fields.length - 1) })
+					});
+				}
 			}
 		} else if (plugin.settings.inlineTagStyle === 'hiding') {
 			const first = fields[0]!;

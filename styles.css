@@ -12,6 +12,7 @@
 }
 
 
+.inline-field-minimal {
 	display: inline;
 	font-size: 0.95em;
 	vertical-align: baseline;
@@ -61,34 +62,18 @@
    Active Line Field Styling (when editing)
    =========================================== */
 
-.inline-field-active__bracket-key {
+.inline-field-active__key {
 	color: var(--text-muted);
-	border-radius: 4px 0 0 4px;
-	background: var(--background-secondary);
-	padding: 1px 0 1px 4px;
+	font-size: 0.9em;
 }
 
 .inline-field-active__separator {
 	color: var(--text-faint);
-	background: var(--background-secondary);
 }
 
-.inline-field-active__value {
-	color: var(--text-accent);
-	font-weight: 500;
-	background: var(--background-secondary);
-}
-
-.inline-field-active__value--empty {
-	color: var(--text-faint);
-	background: var(--background-secondary);
-}
-
-.inline-field-active__bracket {
-	color: var(--text-muted);
-	border-radius: 0 4px 4px 0;
-	background: var(--background-secondary);
-	padding-right: 4px;
+.inline-field-active__bracket-hidden {
+	font-size: 0;
+	color: transparent;
 }
 
 /* ===========================================
