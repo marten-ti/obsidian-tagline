@@ -6,7 +6,7 @@ const DEBOUNCE_DELAY_MS = 300;
 const DEFAULT_STATUS_FIELD = 'status';
 
 export class FrontmatterWatcher {
-	private debouncedHandlers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+	private debouncedHandlers: Map<string, number> = new Map();
 	private previousStatusValues: Map<string, string> = new Map();
 
 	constructor(
@@ -44,10 +44,10 @@ export class FrontmatterWatcher {
 	private handleFileChangedDebounced(file: TFile): void {
 		const existingTimeout = this.debouncedHandlers.get(file.path);
 		if (existingTimeout) {
-			clearTimeout(existingTimeout);
+			window.clearTimeout(existingTimeout);
 		}
 
-		const timeout = setTimeout(() => {
+		const timeout = window.setTimeout(() => {
 			this.debouncedHandlers.delete(file.path);
 			this.handleFileChanged(file);
 		}, DEBOUNCE_DELAY_MS);
@@ -67,13 +67,13 @@ export class FrontmatterWatcher {
 		}
 
 		const statusField = config.statusField || DEFAULT_STATUS_FIELD;
-		const currentValue = cache.frontmatter[statusField];
+		const currentValue: unknown = cache.frontmatter[statusField];
 
 		if (currentValue === undefined) {
 			return;
 		}
 
-		const stringValue = String(currentValue);
+		const stringValue = stringifyFrontmatterValue(currentValue);
 		const previousValue = this.previousStatusValues.get(file.path);
 
 		this.previousStatusValues.set(file.path, stringValue);
@@ -82,7 +82,9 @@ export class FrontmatterWatcher {
 			return;
 		}
 
-		this.syncService.onFrontmatterChanged(file.path, statusField, stringValue, config);
+		this.syncService.onFrontmatterChanged(file.path, statusField, stringValue, config).catch((err: unknown) => {
+			console.error('Tagline: frontmatter sync failed', err);
+		});
 	}
 
 	private getConfigForFile(file: TFile): TagConfiguration | null {
@@ -91,9 +93,9 @@ export class FrontmatterWatcher {
 			return null;
 		}
 
-		const fileTags = cache.frontmatter.tags || [];
+		const fileTags: unknown = cache.frontmatter.tags ?? [];
 		const normalizedFileTags = Array.isArray(fileTags)
-			? fileTags.filter((t): t is string => typeof t === 'string').map(t => t.replace(/^#/, ''))
+			? (fileTags as unknown[]).filter((t): t is string => typeof t === 'string').map(t => t.replace(/^#/, ''))
 			: [String(fileTags).replace(/^#/, '')];
 
 		const configs = this.getSettings().tagConfigurations;
@@ -116,9 +118,16 @@ export class FrontmatterWatcher {
 
 	destroy(): void {
 		for (const timeout of this.debouncedHandlers.values()) {
-			clearTimeout(timeout);
+			window.clearTimeout(timeout);
 		}
 		this.debouncedHandlers.clear();
 		this.previousStatusValues.clear();
 	}
+}
+
+function stringifyFrontmatterValue(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+	if (value === null || value === undefined) return '';
+	return JSON.stringify(value);
 }

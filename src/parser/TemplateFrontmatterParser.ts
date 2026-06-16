@@ -1,16 +1,14 @@
-import type { App, TFile } from 'obsidian';
+import { TFile, type App } from 'obsidian';
 import type { FieldDefinition, FieldType, SuggesterSource } from '../types';
 
 export async function parseTemplateFields(app: App, templatePath: string): Promise<FieldDefinition[]> {
 	if (!templatePath) return [];
 
 	const file = app.vault.getAbstractFileByPath(templatePath);
-	if (!file) return [];
+	if (!(file instanceof TFile)) return [];
+	if (!file.path.endsWith('.md')) return [];
 
-	const tfile = file as TFile;
-	if (!tfile.path.endsWith('.md')) return [];
-
-	const content = await app.vault.read(tfile);
+	const content = await app.vault.read(file);
 	return parseFieldsFromContent(content);
 }
 

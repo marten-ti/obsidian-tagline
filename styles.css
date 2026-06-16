@@ -48,8 +48,7 @@
 
 .inline-field-minimal__link {
 	color: var(--text-accent);
-	text-decoration: underline;
-	text-decoration-color: var(--text-faint);
+	text-decoration: underline solid var(--text-faint);
 	text-underline-offset: 2px;
 }
 
@@ -86,17 +85,17 @@
 	vertical-align: baseline;
 }
 
-.tagline-widget button.create-note-button {
+.tagline-widget button.create-note-button.create-note-button {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	width: 15px;
 	height: 15px;
 	padding: 0;
-	background: transparent !important;
+	background: transparent;
 	color: var(--text-muted);
-	border: none !important;
-	box-shadow: none !important;
+	border: none;
+	box-shadow: none;
 	border-radius: 3px;
 	cursor: pointer;
 	opacity: 0.6;
@@ -105,11 +104,11 @@
 	vertical-align: baseline;
 }
 
-.tagline-widget button.create-note-button:hover {
-	background: var(--interactive-accent) !important;
+.tagline-widget button.create-note-button.create-note-button:hover {
+	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 	opacity: 1;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .tagline-widget button.create-note-button:active {
@@ -462,4 +461,9 @@
 .suggestion-item.is-selected {
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
+}
+
+.tagline-settings .checkbox-sync-info {
+	font-size: 0.85em;
+	opacity: 0.7;
 }

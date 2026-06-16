@@ -38,7 +38,7 @@ export class CheckboxSyncService {
 		this.acquireGuard(linkPath);
 
 		try {
-			await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+			await this.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
 				frontmatter[statusField] = newValue;
 			});
 			return true;
@@ -88,13 +88,16 @@ export class CheckboxSyncService {
 	}
 
 	private findParentFiles(childPath: string): string[] {
-		const metadataCache = this.app.metadataCache as any;
+		interface MetadataCacheWithBacklinks {
+			getBacklinksForFile?: (path: string) => { keys?: () => Iterable<string> } | undefined;
+		}
+		const metadataCache = this.app.metadataCache as unknown as MetadataCacheWithBacklinks;
 
 		if (typeof metadataCache.getBacklinksForFile === 'function') {
 			try {
 				const backlinks = metadataCache.getBacklinksForFile(childPath);
 				if (backlinks && typeof backlinks.keys === 'function') {
-					const keys = Array.from(backlinks.keys() as Iterable<string>);
+					const keys = Array.from(backlinks.keys());
 					if (keys.length > 0) {
 						return keys;
 					}
@@ -161,9 +164,9 @@ export class CheckboxSyncService {
 			return null;
 		}
 
-		const fileTags = cache.frontmatter.tags || [];
+		const fileTags: unknown = cache.frontmatter.tags ?? [];
 		const normalizedFileTags = Array.isArray(fileTags)
-			? fileTags.filter((t): t is string => typeof t === 'string').map(t => t.replace(/^#/, ''))
+			? (fileTags as unknown[]).filter((t): t is string => typeof t === 'string').map(t => t.replace(/^#/, ''))
 			: [String(fileTags).replace(/^#/, '')];
 
 		const configs = this.getSettings().tagConfigurations;
@@ -189,7 +192,7 @@ export class CheckboxSyncService {
 	}
 
 	private scheduleGuardRelease(path: string): void {
-		setTimeout(() => {
+		window.setTimeout(() => {
 			this.activeUpdates.delete(path);
 		}, GUARD_TIMEOUT_MS);
 	}

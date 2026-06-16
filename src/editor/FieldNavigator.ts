@@ -9,7 +9,7 @@ export interface FieldPosition {
 
 // Matches [key:: value] - key can contain letters, numbers, spaces, and common punctuation
 // Value can contain wikilinks like [[Note]] - we match greedily but stop at ] not followed by ]
-const FIELD_PATTERN = /\[([a-zA-Z_][a-zA-Z0-9_ &\-]*):: ((?:[^\[\]]|\[\[[^\]]*\]\])*)\]/g;
+const FIELD_PATTERN = /\[([a-zA-Z_][a-zA-Z0-9_ &-]*):: ((?:[^[\]]|\[\[[^\]]*\]\])*)\]/g;
 
 export function getFieldPositions(line: string): FieldPosition[] {
 	const fields: FieldPosition[] = [];
@@ -17,8 +17,8 @@ export function getFieldPositions(line: string): FieldPosition[] {
 	for (const match of line.matchAll(FIELD_PATTERN)) {
 		const key = match[1];
 		const value = match[2];
-		if (key !== undefined && value !== undefined) {
-			const startPos = match.index!;
+		if (key !== undefined && value !== undefined && match.index !== undefined) {
+			const startPos = match.index;
 			const endPos = startPos + match[0].length;
 			// valueStartPos: position right after ":: "
 			const valueStartPos = startPos + 1 + key.length + 3; // after "[key:: "

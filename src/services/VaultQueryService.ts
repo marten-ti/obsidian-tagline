@@ -1,4 +1,4 @@
-import type { App, TFile, TFolder } from 'obsidian';
+import { TFile, TFolder, type App } from 'obsidian';
 
 export interface FileMatch {
 	name: string;
@@ -12,24 +12,22 @@ export function getFilesByFolder(app: App, folderPath: string): FileMatch[] {
 	let folder = app.vault.getAbstractFileByPath(normalizedPath);
 
 	// If not found, try case-insensitive search
-	if (!folder || !('children' in folder)) {
-		const allFolders = app.vault.getAllLoadedFiles().filter(f => 'children' in f);
+	if (!(folder instanceof TFolder)) {
+		const allFolders = app.vault.getAllLoadedFiles().filter((f): f is TFolder => f instanceof TFolder);
 		folder = allFolders.find(f => f.path.toLowerCase() === normalizedPath.toLowerCase()) ?? null;
 	}
 
-	if (!folder || !('children' in folder)) {
+	if (!(folder instanceof TFolder)) {
 		return [];
 	}
 
 	const results: FileMatch[] = [];
-	const children = (folder as TFolder).children;
 
-	for (const child of children) {
-		if (child instanceof Object && 'extension' in child && child.extension === 'md') {
-			const file = child as TFile;
+	for (const child of folder.children) {
+		if (child instanceof TFile && child.extension === 'md') {
 			results.push({
-				name: file.basename,
-				path: file.path
+				name: child.basename,
+				path: child.path
 			});
 		}
 	}
@@ -56,12 +54,12 @@ export function getFilesByTag(app: App, tag: string): FileMatch[] {
 
 		let hasFrontmatterTag = false;
 		if (cache.frontmatter?.tags) {
-			const fmTags = Array.isArray(cache.frontmatter.tags)
-				? cache.frontmatter.tags
-				: [cache.frontmatter.tags];
-			hasFrontmatterTag = fmTags.some(
-				(t: string) => t === tagWithoutHash || t.startsWith(`${tagWithoutHash}/`)
-			);
+			const fmTagsRaw: unknown = cache.frontmatter.tags;
+			const fmTags: unknown[] = Array.isArray(fmTagsRaw) ? fmTagsRaw : [fmTagsRaw];
+			hasFrontmatterTag = fmTags.some(t => {
+				if (typeof t !== 'string') return false;
+				return t === tagWithoutHash || t.startsWith(`${tagWithoutHash}/`);
+			});
 		}
 
 		if (hasInlineTag || hasFrontmatterTag) {
@@ -84,7 +82,7 @@ export function getFieldValues(app: App, fieldName: string): string[] {
 		const cache = app.metadataCache.getFileCache(file);
 		if (!cache?.frontmatter) continue;
 
-		const value = cache.frontmatter[fieldName];
+		const value: unknown = cache.frontmatter[fieldName];
 		if (value === undefined || value === null) continue;
 
 		if (Array.isArray(value)) {

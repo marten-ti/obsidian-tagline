@@ -17,6 +17,19 @@ import { CheckboxSyncService } from './sync/CheckboxSyncService';
 import { createCheckboxSyncExtension } from './sync/CheckboxClickHandler';
 import { FrontmatterWatcher } from './sync/FrontmatterWatcher';
 
+interface TemplaterApi {
+	files_with_pending_templates?: Set<string>;
+	overwrite_file_commands?: (file: TFile) => Promise<void> | void;
+}
+
+interface TemplaterPlugin {
+	templater?: TemplaterApi;
+}
+
+interface AppWithPlugins {
+	plugins?: { plugins?: Record<string, TemplaterPlugin | undefined> };
+}
+
 export default class TaglinePlugin extends Plugin {
 	settings: PluginSettings;
 	resolvedFieldsCache: Map<string, FieldDefinition[]> = new Map();
@@ -69,11 +82,11 @@ export default class TaglinePlugin extends Plugin {
 				c => c.fieldSource === 'template' && c.templatePath === file.path
 			);
 			if (isTemplatePath) {
-				this.rebuildFieldsCache();
+				void this.rebuildFieldsCache();
 			}
 		}));
 
-		this.registerDomEvent(document, 'keydown', (evt: KeyboardEvent) => {
+		this.registerDomEvent(activeDocument, 'keydown', (evt: KeyboardEvent) => {
 			if (evt.key !== 'Tab') return;
 
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -112,9 +125,9 @@ export default class TaglinePlugin extends Plugin {
 							cmView.dispatch({ selection: EditorSelection.cursor(newOffset) });
 						}
 					};
-					requestAnimationFrame(() => {
+					window.requestAnimationFrame(() => {
 						reassert();
-						requestAnimationFrame(reassert);
+						window.requestAnimationFrame(reassert);
 					});
 				}
 			}
@@ -152,7 +165,8 @@ export default class TaglinePlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const loaded = (await this.loadData()) as Partial<PluginSettings> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded ?? {});
 	}
 
 	async saveSettings() {
@@ -235,9 +249,9 @@ export default class TaglinePlugin extends Plugin {
 	}
 
 	private async createFileWithTemplaterSupport(filePath: string, content: string): Promise<TFile> {
-		const templaterPlugin = (this.app as any).plugins?.plugins?.['templater-obsidian'];
+		const templaterPlugin = (this.app as unknown as AppWithPlugins).plugins?.plugins?.['templater-obsidian'];
 		const templater = templaterPlugin?.templater;
-		const pendingFiles = templater?.files_with_pending_templates as Set<string> | undefined;
+		const pendingFiles = templater?.files_with_pending_templates;
 		const hasTemplaterSyntax = content.includes('<%');
 
 		// Suppress Templater's auto-trigger by adding to pending files before creation
@@ -250,7 +264,7 @@ export default class TaglinePlugin extends Plugin {
 
 		if (shouldSuppress) {
 			// Wait for Templater's trigger check to pass (~300ms), then remove from pending
-			await new Promise(resolve => setTimeout(resolve, 350));
+			await new Promise(resolve => window.setTimeout(resolve, 350));
 			pendingFiles.delete(filePath);
 		}
 
@@ -271,7 +285,7 @@ export default class TaglinePlugin extends Plugin {
 			const stat = await this.app.vault.adapter.stat(file.path);
 			if (stat && stat.mtime === lastMtime) return;
 			lastMtime = stat?.mtime ?? 0;
-			await new Promise(resolve => setTimeout(resolve, 50));
+			await new Promise(resolve => window.setTimeout(resolve, 50));
 		}
 	}
 

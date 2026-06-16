@@ -11,7 +11,6 @@ class CheckboxClickHandler implements PluginValue {
 	constructor(view: EditorView, syncService: CheckboxSyncService) {
 		this.view = view;
 		this.syncService = syncService;
-		this.handleClickEvent = this.handleClickEvent.bind(this);
 		this.view.dom.addEventListener('click', this.handleClickEvent);
 	}
 
@@ -19,7 +18,7 @@ class CheckboxClickHandler implements PluginValue {
 		this.view.dom.removeEventListener('click', this.handleClickEvent);
 	}
 
-	private handleClickEvent(event: MouseEvent): void {
+	private handleClickEvent = (event: MouseEvent): void => {
 		const { target } = event;
 
 		if (!target || !(target instanceof HTMLInputElement) || target.type !== 'checkbox') {
@@ -45,8 +44,8 @@ class CheckboxClickHandler implements PluginValue {
 
 		const isChecked = target.checked;
 
-		this.syncService.onCheckboxToggled(parsed.linkPath, isChecked, sourcePath);
-	}
+		void this.syncService.onCheckboxToggled(parsed.linkPath, isChecked, sourcePath);
+	};
 }
 
 export function createCheckboxSyncExtension(syncService: CheckboxSyncService): Extension {

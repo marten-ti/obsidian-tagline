@@ -80,7 +80,11 @@ export class FieldInsertSuggestor extends EditorSuggest<SuggestionItem> {
 		el.createEl('span', { text: suggestion.displayText });
 	}
 
-	async selectSuggestion(suggestion: SuggestionItem, _evt: MouseEvent | KeyboardEvent): Promise<void> {
+	selectSuggestion(suggestion: SuggestionItem, _evt: MouseEvent | KeyboardEvent): void {
+		void this.applySuggestion(suggestion);
+	}
+
+	private async applySuggestion(suggestion: SuggestionItem): Promise<void> {
 		const editor = this.context?.editor;
 		const context = this.context;
 		if (!editor || !context) return;

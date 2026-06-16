@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { getFieldPositions } from '../editor/FieldNavigator';
 import { buildFrontmatter } from './NoteCreationService';
 import { parseFieldsFromContent } from '../parser/TemplateFrontmatterParser';
-import type { FieldDefinition } from '../types';
 
 describe('Integration: line text to frontmatter', () => {
 	describe('tags field as list type', () => {

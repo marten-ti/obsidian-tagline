@@ -15,7 +15,7 @@ class HiddenFieldsWidget extends WidgetType {
 	}
 
 	toDOM(): HTMLElement {
-		const el = document.createElement("span");
+		const el = activeDocument.createElement("span");
 		el.className = "inline-field-hidden-indicator";
 		el.textContent = "···";
 		el.title = `${this.fieldCount} hidden field${this.fieldCount !== 1 ? "s" : ""}`;
@@ -38,29 +38,29 @@ class HiddenFieldsWidget extends WidgetType {
 const MAX_VALUE_LENGTH = 30;
 
 function buildFieldChip(key: string, value: string, isFirst: boolean): HTMLElement {
-	const container = document.createElement("span");
+	const container = activeDocument.createElement("span");
 	container.className = "inline-field-minimal";
 	if (isFirst) container.classList.add("inline-field-minimal--first");
 
 	if (!isFirst) {
-		const separator = document.createElement("span");
+		const separator = activeDocument.createElement("span");
 		separator.className = "inline-field-minimal__separator";
 		separator.textContent = "│ ";
 		container.appendChild(separator);
 	}
 
-	const keySpan = document.createElement("span");
+	const keySpan = activeDocument.createElement("span");
 	keySpan.className = "inline-field-minimal__key";
 	keySpan.textContent = key;
 	container.appendChild(keySpan);
 
-	const valueSpan = document.createElement("span");
+	const valueSpan = activeDocument.createElement("span");
 	valueSpan.className = "inline-field-minimal__value";
 	if (!value) {
 		valueSpan.textContent = " –";
 		valueSpan.classList.add("inline-field-minimal__value--empty");
 	} else {
-		valueSpan.appendChild(document.createTextNode(" "));
+		valueSpan.appendChild(activeDocument.createTextNode(" "));
 		valueSpan.appendChild(formatFieldValue(value));
 	}
 	container.appendChild(valueSpan);
@@ -74,17 +74,17 @@ function formatFieldValue(value: string): HTMLElement | Text {
 		return formatLinkedValue(value);
 	}
 	if (value.length > MAX_VALUE_LENGTH) {
-		const span = document.createElement("span");
+		const span = activeDocument.createElement("span");
 		span.className = "inline-field-minimal__value--truncated";
 		span.textContent = value.substring(0, MAX_VALUE_LENGTH) + "…";
 		span.title = value;
 		return span;
 	}
-	return document.createTextNode(value);
+	return activeDocument.createTextNode(value);
 }
 
 function formatLinkedValue(value: string): HTMLElement {
-	const container = document.createElement("span");
+	const container = activeDocument.createElement("span");
 	const linkPattern = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]|\[([^\]]+)\]\(([^)]+)\)/g;
 	let lastIndex = 0;
 	let match;
@@ -95,17 +95,17 @@ function formatLinkedValue(value: string): HTMLElement {
 	while ((match = linkPattern.exec(value)) !== null) {
 		if (match.index > lastIndex) {
 			const textBefore = value.substring(lastIndex, match.index).replace(/^,\s*/, "");
-			if (textBefore && linkCount > 0) container.appendChild(document.createTextNode(", "));
-			else if (textBefore) container.appendChild(document.createTextNode(textBefore));
+			if (textBefore && linkCount > 0) container.appendChild(activeDocument.createTextNode(", "));
+			else if (textBefore) container.appendChild(activeDocument.createTextNode(textBefore));
 		}
 		linkCount++;
 		if (linkCount > maxLinks) {
-			const moreSpan = document.createElement("span");
+			const moreSpan = activeDocument.createElement("span");
 			moreSpan.className = "inline-field-minimal__value--more";
 			moreSpan.textContent = ` +${totalLinks - maxLinks} more`;
 			moreSpan.title = value
-				.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, path, alias) => alias || path)
-				.replace(/\[([^\]]+)\]\([^)]+\)/g, (_, text) => text);
+				.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, path: string, alias?: string) => alias || path)
+				.replace(/\[([^\]]+)\]\([^)]+\)/g, (_, text: string) => text);
 			container.appendChild(moreSpan);
 			break;
 		}
@@ -115,8 +115,8 @@ function formatLinkedValue(value: string): HTMLElement {
 		} else {
 			displayText = match[3] || "";
 		}
-		if (linkCount > 1) container.appendChild(document.createTextNode(", "));
-		const linkSpan = document.createElement("span");
+		if (linkCount > 1) container.appendChild(activeDocument.createTextNode(", "));
+		const linkSpan = activeDocument.createElement("span");
 		linkSpan.className = "inline-field-minimal__link";
 		linkSpan.textContent = displayText;
 		container.appendChild(linkSpan);
@@ -126,7 +126,7 @@ function formatLinkedValue(value: string): HTMLElement {
 	if (linkCount <= maxLinks && lastIndex < value.length) {
 		const remaining = value.substring(lastIndex).trim();
 		if (remaining && !remaining.match(/^,?\s*$/)) {
-			container.appendChild(document.createTextNode(remaining));
+			container.appendChild(activeDocument.createTextNode(remaining));
 		}
 	}
 	return container;

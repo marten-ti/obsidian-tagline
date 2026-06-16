@@ -11,11 +11,11 @@ export function detectTagsOnLine(line: string): TagMatch[] {
 
 	for (const match of line.matchAll(TAG_PATTERN)) {
 		const tagName = match[1];
-		if (tagName) {
+		if (tagName && match.index !== undefined) {
 			matches.push({
 				tag: tagName,
-				startPos: match.index!,
-				endPos: match.index! + match[0].length
+				startPos: match.index,
+				endPos: match.index + match[0].length
 			});
 		}
 	}

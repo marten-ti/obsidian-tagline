@@ -15,7 +15,7 @@ class CreateNoteWidget extends WidgetType {
 	}
 
 	toDOM(view: EditorView): HTMLElement {
-		const container = document.createElement("span");
+		const container = activeDocument.createElement("span");
 		container.className = "tagline-widget";
 
 		const button = container.createEl("button", {
@@ -27,14 +27,14 @@ class CreateNoteWidget extends WidgetType {
 		const iconSpan = button.createEl("span", { cls: "create-note-button__icon" });
 		setIcon(iconSpan, "file-plus");
 
-		button.addEventListener("mousedown", async (e) => {
+		button.addEventListener("mousedown", (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 
 			const line = view.state.doc.line(this.lineNumber + 1);
 			if (!line) return;
 
-			await this.plugin.createNoteFromLine(line.text, this.tag, view, this.lineNumber);
+			void this.plugin.createNoteFromLine(line.text, this.tag, view, this.lineNumber);
 		});
 
 		return container;

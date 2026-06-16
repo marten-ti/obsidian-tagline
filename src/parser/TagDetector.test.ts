@@ -6,7 +6,6 @@ import {
 	getTextAfterTag,
 	extractLinePrefix,
 	extractCleanTitle,
-	TagMatch,
 } from './TagDetector';
 
 describe('detectTagsOnLine', () => {

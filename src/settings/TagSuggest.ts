@@ -30,9 +30,9 @@ export class TagSuggest extends TextInputSuggest<string> {
 				}
 			}
 			if (cache?.frontmatter?.tags) {
-				const fmTags = cache.frontmatter.tags;
+				const fmTags: unknown = cache.frontmatter.tags;
 				if (Array.isArray(fmTags)) {
-					fmTags.forEach(t => tags.add(String(t).replace(/^#/, '')));
+					(fmTags as unknown[]).forEach(t => tags.add(String(t).replace(/^#/, '')));
 				} else if (typeof fmTags === 'string') {
 					tags.add(fmTags.replace(/^#/, ''));
 				}

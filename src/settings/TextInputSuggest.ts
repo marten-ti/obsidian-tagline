@@ -1,5 +1,10 @@
 import { App, ISuggestOwner, Scope } from 'obsidian';
 
+interface AppWithInternals {
+	dom: { appContainerEl: HTMLElement };
+	keymap: { pushScope(scope: Scope): void; popScope(scope: Scope): void };
+}
+
 const wrapAround = (value: number, size: number): number => {
 	return ((value % size) + size) % size;
 };
@@ -116,7 +121,7 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 
 		this.inputEl.addEventListener('input', this.onInputChanged.bind(this));
 		this.inputEl.addEventListener('focus', this.onInputChanged.bind(this));
-		this.inputEl.addEventListener('blur', () => setTimeout(() => this.close(), 150));
+		this.inputEl.addEventListener('blur', () => window.setTimeout(() => this.close(), 150));
 
 		this.suggestEl.on('mousedown', '.suggestion-container', (event: MouseEvent) => {
 			event.preventDefault();
@@ -133,22 +138,24 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 		}
 
 		this.suggest.setSuggestions(suggestions);
-		this.open((this.app as any).dom.appContainerEl, this.inputEl);
+		this.open((this.app as unknown as AppWithInternals).dom.appContainerEl, this.inputEl);
 	}
 
 	open(container: HTMLElement, inputEl: HTMLElement): void {
-		(this.app as any).keymap.pushScope(this.scope);
+		(this.app as unknown as AppWithInternals).keymap.pushScope(this.scope);
 		container.appendChild(this.suggestEl);
 
 		const inputRect = inputEl.getBoundingClientRect();
-		this.suggestEl.style.position = 'fixed';
-		this.suggestEl.style.top = `${inputRect.bottom + 4}px`;
-		this.suggestEl.style.left = `${inputRect.left}px`;
-		this.suggestEl.style.zIndex = '1000';
+		this.suggestEl.setCssStyles({
+			position: 'fixed',
+			top: `${inputRect.bottom + 4}px`,
+			left: `${inputRect.left}px`,
+			zIndex: '1000',
+		});
 	}
 
 	close(): void {
-		(this.app as any).keymap.popScope(this.scope);
+		(this.app as unknown as AppWithInternals).keymap.popScope(this.scope);
 		this.suggestEl.detach();
 	}
 

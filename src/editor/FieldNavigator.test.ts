@@ -5,7 +5,6 @@ import {
 	findNextField,
 	findPrevField,
 	findNextEmptyField,
-	FieldPosition,
 } from './FieldNavigator';
 
 describe('getFieldPositions', () => {

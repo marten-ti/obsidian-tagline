@@ -29,7 +29,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 		const generalGroup = containerEl.createDiv('settings-group');
 
 		new Setting(generalGroup)
-			.setName('General settings')
+			.setName('Note creation')
 			.setHeading();
 
 		new Setting(generalGroup)
@@ -91,9 +91,9 @@ export class TaglineSettingTab extends PluginSettingTab {
 					if (this.plugin.settings.inlineTagStyle === opt.value) {
 						btn.classList.add('is-active');
 					}
-					btn.addEventListener('click', async () => {
+					btn.addEventListener('click', () => {
 						this.plugin.settings.inlineTagStyle = opt.value;
-						await this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 						buttons.forEach((b, i) => b.classList.toggle('is-active', options[i]?.value === opt.value));
 					});
 					return btn;
@@ -122,9 +122,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 					this.expandedConfigs.add(newIndex);
 					await this.plugin.saveSettings();
 					this.display();
-				}));
-
-		if (this.plugin.settings.tagConfigurations.length === 0) {
+				}));		if (this.plugin.settings.tagConfigurations.length === 0) {
 			tagGroup.createEl('p', {
 				text: 'No tag configurations yet. Add one to get started.',
 				cls: 'setting-item-description'
@@ -167,7 +165,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 		};
 		updateFieldCount(config.fields.length);
 		if (config.fieldSource === 'template' && config.templatePath) {
-			getEffectiveFields(this.plugin.app, config).then(fields => updateFieldCount(fields.length));
+			void getEffectiveFields(this.plugin.app, config).then(fields => updateFieldCount(fields.length));
 		}
 
 		if (config.templatePath) {
@@ -178,7 +176,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 			text: 'Delete',
 			cls: 'mod-warning tag-config-delete'
 		});
-		deleteBtn.addEventListener('click', async (e) => {
+		deleteBtn.addEventListener('click', (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 			this.plugin.settings.tagConfigurations.splice(index, 1);
@@ -189,8 +187,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 				else newExpanded.add(i);
 			});
 			this.expandedConfigs = newExpanded;
-			await this.plugin.saveSettings();
-			this.display();
+			void this.plugin.saveSettings().then(() => this.display());
 		});
 
 		const content = details.createDiv('tag-config-content');
@@ -202,7 +199,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 			.setName('Tag')
 			.setDesc('Tag name without #')
 			.addText(text => text
-				.setPlaceholder('todo')
+				.setPlaceholder('Todo')
 				.setValue(config.tag)
 				.onChange(async (value) => {
 					config.tag = value;
@@ -265,18 +262,15 @@ export class TaglineSettingTab extends PluginSettingTab {
 	}
 
 	private renderCheckboxSyncSettings(containerEl: HTMLElement, config: TagConfiguration): void {
-		const descFragment = document.createDocumentFragment();
+		const descFragment = activeDocument.createDocumentFragment();
 		descFragment.appendText('Sync checkbox state with frontmatter status field');
 
 		if (config.syncCheckbox) {
 			descFragment.createEl('br');
-			const infoSpan = descFragment.createEl('span', {
-				cls: 'checkbox-sync-info',
-				attr: { style: 'font-size: 0.85em; opacity: 0.7;' }
-			});
+			const infoSpan = descFragment.createEl('span', { cls: 'checkbox-sync-info' });
 			infoSpan.appendText('For large vaults, install ');
 			const link = infoSpan.createEl('a', {
-				text: 'Backlink Cache',
+				text: 'Backlink cache',
 				href: 'obsidian://show-plugin?id=backlink-cache'
 			});
 			link.setAttr('target', '_blank');
@@ -299,7 +293,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 				.setName('Status field')
 				.setDesc('Frontmatter field to sync with checkbox')
 				.addText(text => text
-					.setPlaceholder('status')
+					.setPlaceholder('Status')
 					.setValue(config.statusField || '')
 					.onChange(async (value) => {
 						config.statusField = value || undefined;
@@ -321,7 +315,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 				.setName('Incomplete value')
 				.setDesc('Value when checkbox is unchecked')
 				.addText(text => text
-					.setPlaceholder('To Do')
+					.setPlaceholder('To do')
 					.setValue(config.incompleteValue || '')
 					.onChange(async (value) => {
 						config.incompleteValue = value || undefined;
@@ -349,7 +343,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 			cls: 'setting-item-description fields-auto-note'
 		});
 
-		this.loadAndRenderTemplateFields(previewContainer, config.templatePath);
+		void this.loadAndRenderTemplateFields(previewContainer, config.templatePath);
 	}
 
 	private async loadAndRenderTemplateFields(container: HTMLElement, templatePath: string): Promise<void> {
@@ -401,13 +395,12 @@ export class TaglineSettingTab extends PluginSettingTab {
 		header.createSpan({ text: 'Fields', cls: 'setting-item-name' });
 
 		const addBtn = header.createEl('button', { text: 'Add field', cls: 'fields-add-btn' });
-		addBtn.addEventListener('click', async () => {
+		addBtn.addEventListener('click', () => {
 			config.fields.unshift({
 				key: 'newfield',
 				type: 'text'
 			});
-			await this.plugin.saveSettings();
-			this.display();
+			void this.plugin.saveSettings().then(() => this.display());
 		});
 
 		if (config.fields.length === 0) {
@@ -440,9 +433,9 @@ export class TaglineSettingTab extends PluginSettingTab {
 			placeholder: 'fieldname',
 			value: field.key
 		});
-		keyInput.addEventListener('change', async () => {
+		keyInput.addEventListener('change', () => {
 			field.key = keyInput.value;
-			await this.plugin.saveSettings();
+			void this.plugin.saveSettings();
 		});
 
 		// Type group
@@ -454,10 +447,9 @@ export class TaglineSettingTab extends PluginSettingTab {
 			const opt = typeSelect.createEl('option', { value: t, text: t });
 			if (t === field.type) opt.selected = true;
 		});
-		typeSelect.addEventListener('change', async () => {
+		typeSelect.addEventListener('change', () => {
 			field.type = typeSelect.value as FieldType;
-			await this.plugin.saveSettings();
-			this.display();
+			void this.plugin.saveSettings().then(() => this.display());
 		});
 
 		// Source group
@@ -475,7 +467,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 			const opt = sourceSelect.createEl('option', { value: s.value, text: s.label });
 			if ((field.source?.type || 'none') === s.value) opt.selected = true;
 		});
-		sourceSelect.addEventListener('change', async () => {
+		sourceSelect.addEventListener('change', () => {
 			const value = sourceSelect.value;
 			if (value === 'none') {
 				field.source = undefined;
@@ -485,8 +477,7 @@ export class TaglineSettingTab extends PluginSettingTab {
 					value: field.source?.value || ''
 				};
 			}
-			await this.plugin.saveSettings();
-			this.display();
+			void this.plugin.saveSettings().then(() => this.display());
 		});
 
 		// Source value input (only if source is set)
@@ -497,10 +488,10 @@ export class TaglineSettingTab extends PluginSettingTab {
 				placeholder: this.getSourcePlaceholder(field.source.type),
 				value: field.source.value
 			});
-			sourceInput.addEventListener('change', async () => {
+			sourceInput.addEventListener('change', () => {
 				if (field.source) {
 					field.source.value = sourceInput.value;
-					await this.plugin.saveSettings();
+					void this.plugin.saveSettings();
 				}
 			});
 
@@ -520,9 +511,9 @@ export class TaglineSettingTab extends PluginSettingTab {
 			placeholder: '(none)',
 			value: field.defaultValue || ''
 		});
-		defaultInput.addEventListener('change', async () => {
+		defaultInput.addEventListener('change', () => {
 			field.defaultValue = defaultInput.value.trim() || undefined;
-			await this.plugin.saveSettings();
+			void this.plugin.saveSettings();
 		});
 
 		// Remove button
@@ -531,10 +522,9 @@ export class TaglineSettingTab extends PluginSettingTab {
 			cls: 'field-remove-btn',
 			attr: { 'aria-label': 'Remove field' }
 		});
-		removeBtn.addEventListener('click', async () => {
+		removeBtn.addEventListener('click', () => {
 			config.fields.splice(fieldIndex, 1);
-			await this.plugin.saveSettings();
-			this.display();
+			void this.plugin.saveSettings().then(() => this.display());
 		});
 	}
 
